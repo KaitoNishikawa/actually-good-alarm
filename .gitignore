@@ -1,0 +1,6 @@
+data/heart_rate
+data/labels
+data/motion
+data/steps
+outputs/
+postprocessing/data
