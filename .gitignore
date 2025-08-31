@@ -4,3 +4,5 @@ data/motion
 data/steps
 outputs/
 postprocessing/data
+test_data_5_min
+postprocessing/saved_models

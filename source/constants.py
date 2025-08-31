@@ -14,7 +14,7 @@ class Constants(object):
     SECONDS_PER_HOUR = 3600
     VERBOSE = True
     CROPPED_FILE_PATH = utils.get_project_root().joinpath('outputs/cropped/')
-    FEATURE_FILE_PATH = utils.get_project_root().joinpath('outputs/features/')
+    FEATURE_FILE_PATH = utils.get_project_root().joinpath('outputs/features2/')
     FIGURE_FILE_PATH = utils.get_project_root().joinpath('outputs/figures/')
     LOWER_BOUND = -0.2
     MATLAB_PATH = '/Applications/MATLAB_R2019a.app/bin/matlab'  # Replace with your MATLAB path
