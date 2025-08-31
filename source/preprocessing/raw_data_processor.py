@@ -52,14 +52,18 @@ class RawDataProcessor:
         heart_rate_collection = HeartRateService.load_cropped(subject_id)
 
         start_time = psg_collection.data[0].epoch.timestamp
+        print("psg start time: " + str(start_time))
         motion_epoch_dictionary = RawDataProcessor.get_valid_epoch_dictionary(motion_collection.timestamps,
                                                                               start_time)
         hr_epoch_dictionary = RawDataProcessor.get_valid_epoch_dictionary(heart_rate_collection.timestamps,
                                                                           start_time)
 
         valid_epochs = []
+        print(psg_collection.data[0])
         for stage_item in psg_collection.data:
             epoch = stage_item.epoch
+            # print(stage_item)
+            # print(epoch)
 
             if epoch.timestamp in motion_epoch_dictionary and epoch.timestamp in hr_epoch_dictionary \
                     and stage_item.stage != SleepStage.unscored:
