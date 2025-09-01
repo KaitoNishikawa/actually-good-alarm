@@ -10,6 +10,8 @@ sys.path.insert(0, project_root)
 from flask import Flask, jsonify, request
 
 from source.preprocessing2.preprocessing_runner import runner
+from load_data import LoadData
+from run_model import Model
 
 # runner.run_preprocessing(["3"])
 
@@ -47,23 +49,32 @@ def receive():
         # print(f'x: {parsedData["x"]}')
         # print(f'time: {parsedData["accel_timestamp"]}')
 
-        with open('data/motion/5_acceleration.txt', 'w') as file:
+        with open('data/motion/6_acceleration.txt', 'a') as file:
             for index, i in enumerate(accelData['timestamp']):
                 newLine = str(i) + ' ' + str(accelData['x'][index]) + ' ' + str(accelData['y'][index]) + ' ' + str(accelData['z'][index]) + '\n'
                 file.write(newLine)
 
-        with open('data/heart_rate/5_heartrate.txt', 'w') as file:
+        with open('data/heart_rate/6_heartrate.txt', 'a') as file:
             for index, i in enumerate(HRData['timestamp']):
                 newLine = str(i) + ',' + str(HRData['HR'][index]) + '\n'
                 file.write(newLine)
-        with open('data/labels/5_labeled_sleep.txt', 'w') as file:
+        with open('data/labels/6_labeled_sleep.txt', 'w') as file:
             iteration_amount = math.floor(accelData['timestamp'][-1] / 30) + 1
 
             for i in range(iteration_amount):
                 newLine = str(i * 30) + ' ' + '0' + '\n'
                 file.write(newLine)
-        # runner.run_preprocessing(["2"])
-        return JSONData
+
+        
+        runner.run_preprocessing(["6"])
+        data = LoadData.get_features()
+
+        if data:
+            predictions = Model.run_model(data)
+            print(predictions)
+            return jsonify(predictions=predictions.tolist())
+        print("not enough data")
+        return jsonify(message="not enough data to make prediction"), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001)
