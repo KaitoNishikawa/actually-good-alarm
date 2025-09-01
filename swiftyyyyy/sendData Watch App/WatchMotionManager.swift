@@ -1,6 +1,7 @@
 import CoreMotion
 import Foundation
 import HealthKit
+import AVFoundation
 
 // Inherit from NSObject and conform to ObservableObject
 class WatchMotionManager: NSObject, ObservableObject {
@@ -8,6 +9,8 @@ class WatchMotionManager: NSObject, ObservableObject {
     private let healthStore = HKHealthStore()
     private var heartRateQuery: HKAnchoredObjectQuery?
     private var workoutSession: HKWorkoutSession? // Manages the workout lifecycle
+    
+    private var isSessionRunning = false
 
     // Published properties for the UI
     @Published var x: Double = 0
@@ -15,6 +18,7 @@ class WatchMotionManager: NSObject, ObservableObject {
     @Published var z: Double = 0
     @Published var relativeTime: TimeInterval = 0
     @Published var hr: Double = 0
+    @Published var sleepStagePredictions = [Int]()
 
     // Properties for timekeeping
     private var startTimeAccel: TimeInterval?
@@ -52,6 +56,8 @@ class WatchMotionManager: NSObject, ObservableObject {
         // Set the start date for the new session first
         self.sessionStartDate = Date()
         
+        self.isSessionRunning = true
+        
         let configuration = HKWorkoutConfiguration()
         configuration.activityType = .other
         configuration.locationType = .indoor
@@ -66,13 +72,36 @@ class WatchMotionManager: NSObject, ObservableObject {
         }
         
         startMotionUpdates()
-        print("Workout session starting...")
+        
+        print("Scheduling first data send.")
+        scheduleDataSend()
     }
-
+    
+    private func scheduleDataSend() {
+        // Ensure the session is still running before scheduling the next send
+        guard isSessionRunning else {
+            print("Session stopped. Halting data sending schedule.")
+            return
+        }
+        
+        // Use a 15-second interval for testing. Change to 300 for production.
+        let delayInSeconds: TimeInterval = 300
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + delayInSeconds) { [weak self] in
+            // Double-check the session is still running when the task executes
+            guard let self = self, self.isSessionRunning else { return }
+            
+            print("Sending data...")
+            self.sendDataToServer()
+            
+            // Schedule the next send
+            self.scheduleDataSend()
+        }
+    }
+    
     func stopUpdates() {
         print("Telling workout session to end...")
-        // This is now the only responsibility of this function.
-        // The delegate method will handle the rest of the cleanup.
+        self.isSessionRunning = false
         workoutSession?.end()
     }
 
@@ -143,9 +172,9 @@ class WatchMotionManager: NSObject, ObservableObject {
             }
         }
     }
-
+    
     // --- Data Handling ---
-    private func sendDataToServer() {
+    func sendDataToServer() {
         struct CombinedData: Codable {
             let x: [Double]
             let y: [Double]
@@ -153,6 +182,10 @@ class WatchMotionManager: NSObject, ObservableObject {
             let accel_timestamp: [TimeInterval]
             let heartRate: [Double]
             let heartRate_timestamp: [TimeInterval]
+        }
+        
+        struct PredictionResponse: Codable {
+            let predictions: [Int]
         }
         
         let dataToSend = CombinedData(
@@ -164,7 +197,6 @@ class WatchMotionManager: NSObject, ObservableObject {
             heartRate_timestamp: self.heartRateData["timestamp"] ?? []
         )
         
-//        guard let url = URL(string: "http://10.10.197.249:5001/test") else { return }
         guard let url = URL(string: "http://10.10.197.249:5001/test") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -179,9 +211,20 @@ class WatchMotionManager: NSObject, ObservableObject {
         
         Task {
             do {
-                let (_, response) = try await URLSession.shared.data(for: request)
+                let (data, response) = try await URLSession.shared.data(for: request)
                 if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
                     print("POST request successful!")
+                    do {
+                        let predictionResponse = try JSONDecoder().decode(PredictionResponse.self, from: data)
+                        print("Received predictions: \(predictionResponse.predictions)")
+                        self.sleepStagePredictions = predictionResponse.predictions
+                        
+                        if shouldPlayAlarmSound(predictions: predictionResponse.predictions) {
+                            playSound()
+                        }
+                    } catch {
+                        print("Error decoding JSON response: \(error)")
+                    }
                 } else {
                     print("POST request failed with status code: \((response as? HTTPURLResponse)?.statusCode ?? 0)")
                 }
@@ -189,6 +232,10 @@ class WatchMotionManager: NSObject, ObservableObject {
                 print("Error during POST request: \(error)")
             }
         }
+        
+        //reset data
+        self.accelData = ["x": [], "y": [], "z": [], "timestamp": []]
+        self.heartRateData = ["heartRate": [], "timestamp": []]
     }
     
     private func resetData() {
@@ -205,8 +252,77 @@ class WatchMotionManager: NSObject, ObservableObject {
         }
         
         self.startTimeAccel = nil
-        // --- FIX 1: Do NOT reset the sessionStartDate here ---
         // self.sessionStartDate = nil
+    }
+    
+    // audio
+    // audio
+    // audio
+    // audio
+    // audio
+    
+    var audioPlayer: AVAudioPlayer?
+
+    func playSound() {
+        let soundFileName = "alarm"
+        let soundFileExtension = "mp3"
+
+        guard let soundURL = Bundle.main.url(forResource: soundFileName, withExtension: soundFileExtension) else {
+            print("Could not find the sound file: \(soundFileName).\(soundFileExtension)")
+            return
+        }
+
+        do {
+            audioPlayer = try AVAudioPlayer(contentsOf: soundURL)
+            
+            audioPlayer?.prepareToPlay()
+            
+            audioPlayer?.numberOfLoops = -1
+            
+            audioPlayer?.play()
+            print("Alarm sound started.")
+            
+        } catch {
+            print("Error initializing audio player: \(error.localizedDescription)")
+        }
+    }
+
+    func stopSound() {
+        if audioPlayer?.isPlaying == true {
+            audioPlayer?.stop()
+            print("Alarm sound stopped.")
+        }
+    }
+    
+    func checkAlarmTime() -> Bool {
+        let currentTime = Date()
+        let calendar = Calendar.current
+        
+        guard let alarmTime = calendar.date(bySettingHour: 10, minute: 00, second: 0, of: currentTime) else {
+            print("Error: Could not create the alarm time.")
+            return false
+        }
+        
+        let formatter = DateFormatter()
+        formatter.timeStyle = .medium // e.g., "12:43:15 AM"
+        
+        print("Current Time: \(formatter.string(from: currentTime))")
+        print("Alarm Time:   \(formatter.string(from: alarmTime))")
+        print("---")
+
+        return currentTime > alarmTime
+    }
+    
+    func shouldPlayAlarmSound(predictions: [Int]) -> Bool {
+        if checkAlarmTime() {
+            for i in predictions {
+                if i == 0 || i == 1 || i == 5{
+                    return true
+                }
+            }
+        }
+        
+        return false
     }
 }
 
