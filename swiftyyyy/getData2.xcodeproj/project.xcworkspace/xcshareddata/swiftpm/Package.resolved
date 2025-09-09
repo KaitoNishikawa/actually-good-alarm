@@ -1,0 +1,24 @@
+{
+  "originHash" : "fa1804baef321d8b4837dca71f118379a8100b4b137b7427703f0c3114e03342",
+  "pins" : [
+    {
+      "identity" : "pythonkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/pvieito/PythonKit.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "d5ba1b3b4834e8c47e0cdf0989f458bc59ab0b45"
+      }
+    },
+    {
+      "identity" : "watch-date-picker",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/freysie/watch-date-picker.git",
+      "state" : {
+        "revision" : "1381a207a7aaa41557a8e422a870d0048988a26b",
+        "version" : "0.3.0"
+      }
+    }
+  ],
+  "version" : 3
+}

@@ -11,7 +11,7 @@ class WatchMotionManager: NSObject, ObservableObject {
     private var workoutSession: HKWorkoutSession? // Manages the workout lifecycle
     
     private var isSessionRunning = false
-
+    
     // Published properties for the UI
     @Published var x: Double = 0
     @Published var y: Double = 0
@@ -19,11 +19,20 @@ class WatchMotionManager: NSObject, ObservableObject {
     @Published var relativeTime: TimeInterval = 0
     @Published var hr: Double = 0
     @Published var sleepStagePredictions = [Int]()
-
+    @Published var lastUpdateTime: String = ""
+//    @Published var alarmTimeString: String = ""
+    //    @Published var alarmTimePlus: String = ""
+    
     // Properties for timekeeping
     private var startTimeAccel: TimeInterval?
     private var sessionStartDate: Date?
-
+    
+    //alarm vars
+    private var alarmHour = 9
+    private var alarmMin = 0
+    private var timeWindow = 15
+    private var alarmTime = Date()
+    
     // Data storage arrays
     private var accelData = [
         "x": [Double](),
@@ -31,12 +40,12 @@ class WatchMotionManager: NSObject, ObservableObject {
         "z": [Double](),
         "timestamp": [Double]()
     ]
-
+    
     private var heartRateData = [
         "heartRate": [Double](),
         "timestamp": [TimeInterval]()
     ]
-
+    
     // --- Authorization ---
     func requestHealthKitAuthorization(completion: @escaping (Bool) -> Void) {
         let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate)!
@@ -50,9 +59,9 @@ class WatchMotionManager: NSObject, ObservableObject {
             completion(success)
         }
     }
-
+    
     // --- Lifecycle Management ---
-    func startUpdates() {
+    func startUpdates(hour: Int, minute: Int, window: Int) {
         // Set the start date for the new session first
         self.sessionStartDate = Date()
         
@@ -72,6 +81,12 @@ class WatchMotionManager: NSObject, ObservableObject {
         }
         
         startMotionUpdates()
+        
+        self.alarmHour = hour
+        self.alarmMin = minute
+        self.timeWindow = window
+        initializeAlarmTime()
+        print(shouldPlayAlarmSound(predictions: [1,1,1]))
         
         print("Scheduling first data send.")
         scheduleDataSend()
@@ -104,7 +119,7 @@ class WatchMotionManager: NSObject, ObservableObject {
         self.isSessionRunning = false
         workoutSession?.end()
     }
-
+    
     // --- Sensor Data Collection ---
     private func startMotionUpdates() {
         guard movementManager.isAccelerometerAvailable else { return }
@@ -116,7 +131,7 @@ class WatchMotionManager: NSObject, ObservableObject {
             self.x = data.acceleration.x
             self.y = data.acceleration.y
             self.z = data.acceleration.z
-
+            
             if self.startTimeAccel == nil {
                 self.startTimeAccel = data.timestamp
             }
@@ -128,7 +143,7 @@ class WatchMotionManager: NSObject, ObservableObject {
             self.accelData["timestamp"]?.append(self.relativeTime)
         }
     }
-
+    
     func startHeartRateUpdates() {
         guard let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate),
               let startDate = sessionStartDate else {
@@ -197,7 +212,7 @@ class WatchMotionManager: NSObject, ObservableObject {
             heartRate_timestamp: self.heartRateData["timestamp"] ?? []
         )
         
-        guard let url = URL(string: "http://10.10.197.249:5001/test") else { return }
+        guard let url = URL(string: "http://10.10.197.249:5001/data") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -216,11 +231,13 @@ class WatchMotionManager: NSObject, ObservableObject {
                     print("POST request successful!")
                     do {
                         let predictionResponse = try JSONDecoder().decode(PredictionResponse.self, from: data)
-                        print("Received predictions: \(predictionResponse.predictions)")
-                        self.sleepStagePredictions = predictionResponse.predictions
-                        
-                        if shouldPlayAlarmSound(predictions: predictionResponse.predictions) {
-                            playSound()
+                        DispatchQueue.main.async {
+                            print("Received predictions: \(predictionResponse.predictions)")
+                            self.sleepStagePredictions = predictionResponse.predictions
+                            
+                            if self.shouldPlayAlarmSound(predictions: predictionResponse.predictions) {
+                                self.playSound()
+                            }
                         }
                     } catch {
                         print("Error decoding JSON response: \(error)")
@@ -262,16 +279,16 @@ class WatchMotionManager: NSObject, ObservableObject {
     // audio
     
     var audioPlayer: AVAudioPlayer?
-
+    
     func playSound() {
         let soundFileName = "alarm"
         let soundFileExtension = "mp3"
-
+        
         guard let soundURL = Bundle.main.url(forResource: soundFileName, withExtension: soundFileExtension) else {
             print("Could not find the sound file: \(soundFileName).\(soundFileExtension)")
             return
         }
-
+        
         do {
             audioPlayer = try AVAudioPlayer(contentsOf: soundURL)
             
@@ -286,7 +303,7 @@ class WatchMotionManager: NSObject, ObservableObject {
             print("Error initializing audio player: \(error.localizedDescription)")
         }
     }
-
+    
     func stopSound() {
         if audioPlayer?.isPlaying == true {
             audioPlayer?.stop()
@@ -294,32 +311,69 @@ class WatchMotionManager: NSObject, ObservableObject {
         }
     }
     
-    func checkAlarmTime() -> Bool {
+    func initializeAlarmTime(){
         let currentTime = Date()
         let calendar = Calendar.current
         
-        guard let alarmTime = calendar.date(bySettingHour: 10, minute: 00, second: 0, of: currentTime) else {
-            print("Error: Could not create the alarm time.")
-            return false
+        self.alarmTime = calendar.date(bySettingHour: self.alarmHour, minute: self.alarmMin, second: 0, of: currentTime)!
+        
+        if self.alarmTime <= currentTime {
+            self.alarmTime = Calendar.current.date(byAdding: .day, value: 1, to: self.alarmTime)!
         }
         
-        let formatter = DateFormatter()
-        formatter.timeStyle = .medium // e.g., "12:43:15 AM"
+        let dateComponents = calendar.dateComponents([.year, .month, .day], from: alarmTime)
+        let year = dateComponents.year
+        let month = dateComponents.month
+        let day = dateComponents.day
         
-        print("Current Time: \(formatter.string(from: currentTime))")
+        let formatter = DateFormatter()
+        formatter.timeStyle = .medium
+        
         print("Alarm Time:   \(formatter.string(from: alarmTime))")
-        print("---")
-
-        return currentTime > alarmTime
+        print("Alarm date: \(month)/\(day)/\(year)")
     }
     
     func shouldPlayAlarmSound(predictions: [Int]) -> Bool {
-        if checkAlarmTime() {
+        let currentTime = Date()
+        let calendar = Calendar.current
+        
+        let timeWindowStartpoint = calendar.date(byAdding: .minute, value: -self.timeWindow, to: self.alarmTime)!
+        
+        let formatter = DateFormatter()
+        formatter.timeStyle = .medium
+        print("Start Time: \(formatter.string(from: timeWindowStartpoint))")
+        
+        if currentTime >= timeWindowStartpoint {
+            var lightSleepCounter = 0
+            let timeWindowMidpoint = self.alarmTime
+            
+            print("Mid Time: \(formatter.string(from: timeWindowMidpoint))")
+            
             for i in predictions {
-                if i == 0 || i == 1 || i == 5{
+                // if early on in window, don't count REM
+                if currentTime < timeWindowMidpoint {
+                    if i == 0 || i == 1 {
+                        lightSleepCounter += 1
+                    }
+                }
+                else{
+                    if i == 0 || i == 1 || i == 5{
+                        lightSleepCounter += 1
+                    }
+                }
+                
+                if lightSleepCounter >= 3 {
                     return true
                 }
             }
+        }
+        
+        let timeWindowEndpoint = calendar.date(byAdding: .minute, value: self.timeWindow, to: self.alarmTime)!
+        
+        print("End Time: \(formatter.string(from: timeWindowEndpoint))")
+        
+        if currentTime >= timeWindowEndpoint {
+            return true
         }
         
         return false

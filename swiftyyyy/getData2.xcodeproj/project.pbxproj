@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		DB19A5072E2625090027365E /* sendData Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = DB19A4E42E2625070027365E /* sendData Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DB19A51A2E26260E0027365E /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB19A5192E26260E0027365E /* WatchConnectivity.framework */; };
+		DBA5763A2E6CDF1B00CF477D /* WatchDatePicker in Frameworks */ = {isa = PBXBuildFile; productRef = DBA576392E6CDF1B00CF477D /* WatchDatePicker */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -80,6 +81,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DBA5763A2E6CDF1B00CF477D /* WatchDatePicker in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -157,6 +159,7 @@
 			);
 			name = "sendData Watch App";
 			packageProductDependencies = (
+				DBA576392E6CDF1B00CF477D /* WatchDatePicker */,
 			);
 			productName = "sendData Watch App";
 			productReference = DB19A4E42E2625070027365E /* sendData Watch App.app */;
@@ -191,6 +194,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				DBEFE5C92E4C9B8300431C69 /* XCRemoteSwiftPackageReference "PythonKit" */,
+				DBA576382E6CDE7C00CF477D /* XCRemoteSwiftPackageReference "watch-date-picker" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DB19A4B42E26248F0027365E /* Products */;
@@ -530,6 +534,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		DBA576382E6CDE7C00CF477D /* XCRemoteSwiftPackageReference "watch-date-picker" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/freysie/watch-date-picker.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.3.0;
+			};
+		};
 		DBEFE5C92E4C9B8300431C69 /* XCRemoteSwiftPackageReference "PythonKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/pvieito/PythonKit.git";
@@ -539,6 +551,14 @@
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		DBA576392E6CDF1B00CF477D /* WatchDatePicker */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DBA576382E6CDE7C00CF477D /* XCRemoteSwiftPackageReference "watch-date-picker" */;
+			productName = WatchDatePicker;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = DB19A4AB2E26248F0027365E /* Project object */;
 }
