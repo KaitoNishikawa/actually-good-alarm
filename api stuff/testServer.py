@@ -13,22 +13,18 @@ from source.preprocessing2.preprocessing_runner import runner
 from load_data import LoadData
 from run_model import Model
 
-# runner.run_preprocessing(["3"])
-
 app = Flask(__name__)
 
 @app.route('/hello')
 def hello_world():
     runner.run_preprocessing(["46343"])
-    return jsonify(message='Hello from your test API!')
+    return jsonify(message='Hello World')
 
-@app.route('/test', methods=["POST"])
+@app.route('/data', methods=["POST"])
 def receive():
     if request.is_json:
         JSONData = request.get_json()
-        # print(JSONData)
-        # print(JSONData["accel_timestamp"])
-        # print(JSONData["heartRate_timestamp"])
+
         accelData = {
             'x': JSONData['x'],
             'y': JSONData['y'],
@@ -39,38 +35,27 @@ def receive():
             'HR': JSONData['heartRate'],
             'timestamp': JSONData['heartRate_timestamp']
         }
+
         print(f'x length: {len(accelData['x'])}')
         print(f'y length: {len(accelData['y'])}')
         print(f'z length: {len(accelData['z'])}')
         print(f'time length: {len(accelData['timestamp'])}')
         print(f'hr length: {len(HRData['HR'])}')
         print(f'time length: {len(HRData['timestamp'])}')
-        # parsedData = json.loads(JSONData)
-        # print(f'x: {parsedData["x"]}')
-        # print(f'time: {parsedData["accel_timestamp"]}')
 
-        with open('data/motion/6_acceleration.txt', 'a') as file:
-            for index, i in enumerate(accelData['timestamp']):
-                newLine = str(i) + ' ' + str(accelData['x'][index]) + ' ' + str(accelData['y'][index]) + ' ' + str(accelData['z'][index]) + '\n'
-                file.write(newLine)
+        file_number = 11
+        file_number_as_str = str(file_number)
 
-        with open('data/heart_rate/6_heartrate.txt', 'a') as file:
-            for index, i in enumerate(HRData['timestamp']):
-                newLine = str(i) + ',' + str(HRData['HR'][index]) + '\n'
-                file.write(newLine)
-        with open('data/labels/6_labeled_sleep.txt', 'w') as file:
-            iteration_amount = math.floor(accelData['timestamp'][-1] / 30) + 1
-
-            for i in range(iteration_amount):
-                newLine = str(i * 30) + ' ' + '0' + '\n'
-                file.write(newLine)
-
+        # write data to txt files
+        LoadData.write_data_to_files(accelData, HRData, file_number_as_str)
         
-        runner.run_preprocessing(["6"])
-        data = LoadData.get_features()
+        # generate features and write to txt files
+        runner.run_preprocessing([file_number_as_str])
+        # read features into data frame
+        data = LoadData.get_features(file_number_as_str)
 
         if data:
-            predictions = Model.run_model(data)
+            predictions = Model.run_model(data, file_number_as_str)
             print(predictions)
             return jsonify(predictions=predictions.tolist())
         print("not enough data")
