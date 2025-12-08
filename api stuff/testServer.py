@@ -43,7 +43,7 @@ def receive():
         print(f'hr length: {len(HRData['HR'])}')
         print(f'time length: {len(HRData['timestamp'])}')
 
-        file_number = 11
+        file_number = 22
         file_number_as_str = str(file_number)
 
         # write data to txt files

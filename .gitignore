@@ -1,3 +1,4 @@
+venv/
 data/heart_rate
 data/labels
 data/motion
@@ -7,3 +8,4 @@ postprocessing/data
 test_data_5_min
 postprocessing/saved_models
 difference_data
+*.txt
