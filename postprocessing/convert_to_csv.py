@@ -4,7 +4,7 @@ subjects_as_ints = [3509524, 5132496, 1066528, 5498603, 2638030, 2598705, 538342
                             1449548, 8258170, 781756, 9106476, 8686948, 8530312, 3997827, 4314139, 1818471, 4426783,
                             8173033, 7749105, 5797046, 759667, 8000685, 6220552, 844359, 9618981, 1360686, 46343,
                             8692923]
-
+print(len(subjects_as_ints))
 
 labels = ['cosine_feature', 'count_feature', 'hr_feature', 'time_feature', 'psg_label']
 cosine_features = []
@@ -35,7 +35,10 @@ for i in subjects_as_ints:
     with open("../outputs/features/" + subject_number + "_psg_labels.out", 'r') as file:
         for line in file:
             line = line.strip()
-            psg_labels.append(int(float(line)))
+            psg_labels.append(3 if int(float(line)) == 4 else int(float(line)))
+            # if int(float(line)) == 4:
+            #     print(f'subject {subject_number}')
+            #     print(line)
 
     # print(len(cosine_features))
     # print(len(count_features))
