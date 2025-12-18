@@ -9,6 +9,7 @@ from flask import Flask, jsonify, request
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, project_root)
 file_number = datetime.now().strftime("%Y%m%d")
+print(f"date: {file_number}")
 
 from source.preprocessing2.preprocessing_runner import runner
 from load_data import LoadData
@@ -18,7 +19,7 @@ app = Flask(__name__)
 
 @app.route('/hello')
 def hello_world():
-    runner.run_preprocessing(["46343"])
+    # runner.run_preprocessing(["46343"])
     return jsonify(message='Hello World')
 
 @app.route('/data', methods=["POST"])
@@ -67,29 +68,16 @@ def receive():
 @app.route('/sleep_data', methods=["POST"])
 def receive_sleep_data():
     if request.is_json:
-        try:
-            sleep_data = request.get_json()
+        sleep_data = request.get_json()
+        
+        save_dir = 'sleep_data_logs'            
+        filename = f"{save_dir}/sleep_data_{file_number}.json"
+        
+        with open(filename, 'w') as f:
+            json.dump(sleep_data, f, indent=4)
             
-            # Create a directory for logs if it doesn't exist
-            save_dir = 'sleep_data_logs'
-            if not os.path.exists(save_dir):
-                os.makedirs(save_dir)
-            
-            # Generate a unique filename using the current timestamp
-            # timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            # filename = f"{save_dir}/sleep_data_{timestamp}.json"
-            filename = f"{save_dir}/sleep_data_{file_number}.json"
-            
-            # Save the JSON data to the file
-            with open(filename, 'w') as f:
-                json.dump(sleep_data, f, indent=4)
-                
-            print(f"Sleep data saved to {filename}")
-            return jsonify(message="Sleep data saved successfully"), 200
-            
-        except Exception as e:
-            print(f"Error saving sleep data: {e}")
-            return jsonify(message="Internal Server Error"), 500
+        print(f"Sleep data saved to {filename}")
+        return jsonify(message="Sleep data saved successfully"), 200            
     else:
         return jsonify(message="Request was not JSON"), 400
 

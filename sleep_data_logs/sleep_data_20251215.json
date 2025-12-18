@@ -1,0 +1,182 @@
+[
+    {
+        "startDate": "2025-12-15T13:32:01Z",
+        "endDate": "2025-12-15T13:46:29Z",
+        "durationMinutes": 14.478127034505208,
+        "stage": "Light/Core Sleep"
+    },
+    {
+        "startDate": "2025-12-15T13:46:29Z",
+        "endDate": "2025-12-15T13:52:59Z",
+        "durationMinutes": 6.489804585774739,
+        "stage": "Deep Sleep"
+    },
+    {
+        "startDate": "2025-12-15T13:52:59Z",
+        "endDate": "2025-12-15T13:53:59Z",
+        "durationMinutes": 0.9991434733072917,
+        "stage": "Awake"
+    },
+    {
+        "startDate": "2025-12-15T13:53:59Z",
+        "endDate": "2025-12-15T14:01:58Z",
+        "durationMinutes": 7.9888865152994795,
+        "stage": "Light/Core Sleep"
+    },
+    {
+        "startDate": "2025-12-15T14:01:58Z",
+        "endDate": "2025-12-15T14:22:26Z",
+        "durationMinutes": 20.467252604166667,
+        "stage": "Deep Sleep"
+    },
+    {
+        "startDate": "2025-12-15T14:22:26Z",
+        "endDate": "2025-12-15T14:50:24Z",
+        "durationMinutes": 27.958964538574218,
+        "stage": "Light/Core Sleep"
+    },
+    {
+        "startDate": "2025-12-15T14:50:24Z",
+        "endDate": "2025-12-15T14:52:24Z",
+        "durationMinutes": 1.9998728434244792,
+        "stage": "Awake"
+    },
+    {
+        "startDate": "2025-12-15T14:52:24Z",
+        "endDate": "2025-12-15T15:11:22Z",
+        "durationMinutes": 18.97291717529297,
+        "stage": "Light/Core Sleep"
+    },
+    {
+        "startDate": "2025-12-15T15:11:22Z",
+        "endDate": "2025-12-15T15:15:22Z",
+        "durationMinutes": 3.9941914876302085,
+        "stage": "Deep Sleep"
+    },
+    {
+        "startDate": "2025-12-15T15:15:22Z",
+        "endDate": "2025-12-15T15:18:21Z",
+        "durationMinutes": 2.9963144938151043,
+        "stage": "Light/Core Sleep"
+    },
+    {
+        "startDate": "2025-12-15T15:18:21Z",
+        "endDate": "2025-12-15T15:24:51Z",
+        "durationMinutes": 6.495250956217448,
+        "stage": "Awake"
+    },
+    {
+        "startDate": "2025-12-15T15:24:51Z",
+        "endDate": "2025-12-15T16:07:18Z",
+        "durationMinutes": 42.44733581542969,
+        "stage": "Light/Core Sleep"
+    },
+    {
+        "startDate": "2025-12-15T16:07:18Z",
+        "endDate": "2025-12-15T16:20:17Z",
+        "durationMinutes": 12.985143534342448,
+        "stage": "REM Sleep"
+    },
+    {
+        "startDate": "2025-12-15T16:20:17Z",
+        "endDate": "2025-12-15T16:21:17Z",
+        "durationMinutes": 0.9997400919596354,
+        "stage": "Awake"
+    },
+    {
+        "startDate": "2025-12-15T16:21:17Z",
+        "endDate": "2025-12-15T16:56:15Z",
+        "durationMinutes": 34.95965576171875,
+        "stage": "Light/Core Sleep"
+    },
+    {
+        "startDate": "2025-12-15T16:56:15Z",
+        "endDate": "2025-12-15T17:02:14Z",
+        "durationMinutes": 5.993787129720052,
+        "stage": "Awake"
+    },
+    {
+        "startDate": "2025-12-15T17:02:14Z",
+        "endDate": "2025-12-15T17:06:44Z",
+        "durationMinutes": 4.493452962239584,
+        "stage": "Light/Core Sleep"
+    },
+    {
+        "startDate": "2025-12-15T17:06:44Z",
+        "endDate": "2025-12-15T17:08:14Z",
+        "durationMinutes": 1.4986745198567708,
+        "stage": "Awake"
+    },
+    {
+        "startDate": "2025-12-15T17:08:14Z",
+        "endDate": "2025-12-15T17:17:13Z",
+        "durationMinutes": 8.987455240885417,
+        "stage": "Light/Core Sleep"
+    },
+    {
+        "startDate": "2025-12-15T17:17:13Z",
+        "endDate": "2025-12-15T17:19:13Z",
+        "durationMinutes": 1.9976353963216147,
+        "stage": "Awake"
+    },
+    {
+        "startDate": "2025-12-15T17:19:13Z",
+        "endDate": "2025-12-15T17:27:12Z",
+        "durationMinutes": 7.988704427083333,
+        "stage": "Light/Core Sleep"
+    },
+    {
+        "startDate": "2025-12-15T17:27:12Z",
+        "endDate": "2025-12-15T17:58:09Z",
+        "durationMinutes": 30.94795888264974,
+        "stage": "REM Sleep"
+    },
+    {
+        "startDate": "2025-12-15T17:58:09Z",
+        "endDate": "2025-12-15T18:07:38Z",
+        "durationMinutes": 9.490486399332683,
+        "stage": "Awake"
+    },
+    {
+        "startDate": "2025-12-15T18:07:38Z",
+        "endDate": "2025-12-15T18:17:38Z",
+        "durationMinutes": 9.9862912495931,
+        "stage": "Light/Core Sleep"
+    },
+    {
+        "startDate": "2025-12-15T18:17:38Z",
+        "endDate": "2025-12-15T18:20:38Z",
+        "durationMinutes": 2.9980323791503904,
+        "stage": "Awake"
+    },
+    {
+        "startDate": "2025-12-15T18:20:38Z",
+        "endDate": "2025-12-15T18:51:35Z",
+        "durationMinutes": 30.957105763753255,
+        "stage": "Light/Core Sleep"
+    },
+    {
+        "startDate": "2025-12-15T18:51:35Z",
+        "endDate": "2025-12-15T18:52:05Z",
+        "durationMinutes": 0.4995966593424479,
+        "stage": "Awake"
+    },
+    {
+        "startDate": "2025-12-15T18:52:05Z",
+        "endDate": "2025-12-15T19:19:32Z",
+        "durationMinutes": 27.456155904134114,
+        "stage": "Light/Core Sleep"
+    },
+    {
+        "startDate": "2025-12-15T19:19:32Z",
+        "endDate": "2025-12-15T19:37:31Z",
+        "durationMinutes": 17.971080780029297,
+        "stage": "REM Sleep"
+    },
+    {
+        "startDate": "2025-12-15T19:37:31Z",
+        "endDate": "2025-12-15T20:05:29Z",
+        "durationMinutes": 27.968441772460938,
+        "stage": "Light/Core Sleep"
+    }
+]

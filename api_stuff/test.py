@@ -5,7 +5,7 @@ from datetime import datetime
 
 file_number = datetime.now().strftime("%Y%m%d")
 print(file_number)
-# PlotData.plot_apple_and_model_data_2(file_number)
+PlotData.plot_apple_and_model_data_2(file_number)
 
 # data = LoadData.get_features(file_number)
 # print(len(data))
@@ -18,3 +18,7 @@ print(file_number)
 
 # print(f"Original String: {date_string}")
 # print(f"JSON StartTime:  {timestamp}")
+
+# timestamp = 1765730181.2749329
+# dt_object = datetime.fromtimestamp(timestamp)
+# print(dt_object)
