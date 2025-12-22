@@ -32,22 +32,28 @@ class LoadData:
     def get_features(file_number_as_str):
         cosine_features = []
         count_features = []
-        hr_features = []
+        hr_std_features = []
+        hr_mean_features = []
         time_features = []
 
-        with open('./outputs/features2/' + file_number_as_str +'_cosine_feature.out', 'r') as file:
+        with open('./outputs_apple/features/' + file_number_as_str +'_cosine_feature.out', 'r') as file:
             for line in file:
                 cosine_features.append(float(line))
 
-        with open('./outputs/features2/' + file_number_as_str +'_count_feature.out', 'r') as file:
+        with open('./outputs_apple/features/' + file_number_as_str +'_count_feature.out', 'r') as file:
             for line in file:
                 count_features.append(float(line))
 
-        with open('./outputs/features2/' + file_number_as_str +'_hr_feature.out', 'r') as file:
+        with open("./outputs_apple/features/" + file_number_as_str + "_hr_feature.out", 'r') as file:
             for line in file:
-                hr_features.append(float(line))
+                parts = line.strip().split()
+                hr_std_features.append(float(parts[0]))
+                if len(parts) > 1:
+                    hr_mean_features.append(float(parts[1]))
+                else:
+                    hr_mean_features.append(0.0)
 
-        with open('./outputs/features2/' + file_number_as_str +'_time_feature.out', 'r') as file:
+        with open('./outputs_apple/features/' + file_number_as_str +'_time_feature.out', 'r') as file:
             for line in file:
                 time_features.append(float(line))
         
@@ -71,7 +77,8 @@ class LoadData:
                 temp_array = [
                     cosine_features[index], 
                     count_features[index], 
-                    hr_features[index], 
+                    hr_std_features[index],
+                    hr_mean_features[index],
                     time_features[index]
                 ]
                 data.append(np.array(temp_array))

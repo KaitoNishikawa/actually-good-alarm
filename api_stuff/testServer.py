@@ -19,7 +19,7 @@ app = Flask(__name__)
 
 @app.route('/hello')
 def hello_world():
-    # runner.run_preprocessing(["46343"])
+    # runner.run_preprocessing(["20251213", "20251214", "20251215", "20251217"])
     return jsonify(message='Hello World')
 
 @app.route('/data', methods=["POST"])
