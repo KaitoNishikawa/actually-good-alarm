@@ -58,7 +58,9 @@ class HeartRateFeatureService(object):
 
     @staticmethod
     def get_feature(heart_rate_values):
-        return [np.std(heart_rate_values)]
+        # Adding mean (normalized) to capture the "level" of heart rate, not just variability.
+        # The values are already normalized by the 90th percentile of the subject's night in interpolate_and_normalize.
+        return [np.std(heart_rate_values), np.mean(heart_rate_values)]
 
     @staticmethod
     def interpolate_and_normalize(heart_rate_collection):

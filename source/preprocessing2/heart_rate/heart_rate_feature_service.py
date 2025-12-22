@@ -58,7 +58,8 @@ class HeartRateFeatureService(object):
 
     @staticmethod
     def get_feature(heart_rate_values):
-        return [np.std(heart_rate_values)]
+        # return [np.std(heart_rate_values)]
+        return [np.std(heart_rate_values), np.mean(heart_rate_values)]
 
     @staticmethod
     def interpolate_and_normalize(heart_rate_collection):
