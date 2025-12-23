@@ -5,10 +5,10 @@ import math
 from datetime import datetime
 from flask import Flask, jsonify, request
 
-# Add project root to Python path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, project_root)
-file_number = datetime.now().strftime("%Y%m%d")
+# file_number = datetime.now().strftime("%Y%m%d")
+file_number = "20241222"
 print(f"date: {file_number}")
 
 from source.preprocessing2.preprocessing_runner import runner
@@ -46,18 +46,13 @@ def receive():
         print(f"hr length: {len(HRData['HR'])}")
         print(f"hr time length: {len(HRData['timestamp'])}")
 
-        # file_number = 1214
         file_number_as_str = str(file_number)
 
-        # write data to txt files
         LoadData.write_data_to_files(accelData, HRData, file_number_as_str, absolute_start_time)
-        
-        # generate features and write to txt files
         runner.run_preprocessing([file_number_as_str])
-        # read features into data frame
         data = LoadData.get_features(file_number_as_str)
 
-        if data:
+        if data is not None:
             predictions = Model.run_model(data, file_number_as_str)
             predictions = predictions[-10:]
             print(predictions)
