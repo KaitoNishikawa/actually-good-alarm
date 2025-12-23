@@ -6,8 +6,8 @@ from sklearn.metrics import classification_report
 df = pd.read_csv("model_stuff/data/test/bigboy_hella_features.csv")
 # x = df[['cosine_feature', 'count_feature', 'hr_std', 'hr_mean', 'time_feature', 'hr_mean_diff']]
 x = df[['cosine_feature', 'count_feature', 'hr_std', 'hr_mean', 'time_feature', 
-        'hr_mean_diff', 'count_feature_lag_1', 'count_feature_lag_2', 'hr_std_lag_1', 'hr_std_lag_2', 
-        'hr_mean_lag_1', 'hr_mean_lag_2', 'delta'
+        'count_feature_lag_1', 'count_feature_lag_2', 'hr_std_lag_1', 'hr_std_lag_2', 
+        'hr_mean_lag_1', 'hr_mean_lag_2', 'hr_mean_delta'
 ]]
 y = df['psg_label']
 
