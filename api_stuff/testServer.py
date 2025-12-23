@@ -7,8 +7,8 @@ from flask import Flask, jsonify, request
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, project_root)
-# file_number = datetime.now().strftime("%Y%m%d")
-file_number = "20241222"
+file_number = datetime.now().strftime("%Y%m%d")
+# file_number = "20241222"
 print(f"date: {file_number}")
 
 from source.preprocessing2.preprocessing_runner import runner
