@@ -1,5 +1,5 @@
-import csv
 import pandas as pd
+from sklearn.preprocessing import StandardScaler
 
 subjects_as_ints = [
     9106476, 9618981, 9961348
@@ -53,8 +53,8 @@ for i in subjects_as_ints:
         'psg_label': psg_labels
     })
 
-    hr_mean_diff = df['hr_mean'] - df['hr_mean'].shift(1)
-    df['hr_mean_diff'] = hr_mean_diff
+    # hr_mean_diff = df['hr_mean'] - df['hr_mean'].shift(1)
+    # df['hr_mean_diff'] = hr_mean_diff
 
     df['count_feature_lag_1'] = df['count_feature'].shift(1)
     df['count_feature_lag_2'] = df['count_feature'].shift(2)
@@ -65,10 +65,13 @@ for i in subjects_as_ints:
     df['hr_mean_lag_1'] = df['hr_mean'].shift(1)
     df['hr_mean_lag_2'] = df['hr_mean'].shift(2)
 
-    df['delta'] = df['hr_mean'] - df['hr_mean'].shift(2)
-
+    df['hr_mean_delta'] = df['hr_mean'] - df['hr_mean'].shift(2)
 
     df = df.iloc[2:]
+
+    scaler = StandardScaler()
+    df['hr_mean_delta'] = scaler.fit_transform(df[['hr_mean_delta']])
+
     data.append(df)
     df.to_csv(f"model_stuff/data/test/individual/hella_features/{subject_number}.csv", index=False)
 

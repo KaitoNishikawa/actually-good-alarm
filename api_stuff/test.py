@@ -1,15 +1,25 @@
-from plot_data import PlotData
+# from plot_data import PlotData
+import sys
+import os
 from load_data import LoadData
 from run_model import Model
 from datetime import datetime
 
-file_number = datetime.now().strftime("%Y%m%d")
-print(file_number)
-PlotData.plot_apple_and_model_data_2(file_number)
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, project_root)
 
-# data = LoadData.get_features(file_number)
-# print(len(data))
-# predictions = Model.run_model(data, file_number)
+from source.preprocessing2.preprocessing_runner import runner
+
+# file_number = "20251215"
+# file_number = datetime.now().strftime("%Y%m%d")
+# print(file_number)
+# PlotData.plot_apple_and_model_data_2(file_number)
+
+file_number = "20251215"
+runner.run_preprocessing([file_number])
+data = LoadData.get_features(file_number)
+print(len(data))
+predictions = Model.run_model(data, file_number)
 
 # date_string = "2025-12-13 09:37:05,988"
 

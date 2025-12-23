@@ -1,6 +1,8 @@
 import numpy as np
 import math
 import json
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
 
 class LoadData:
     def write_data_to_files(accelData, HRData, file_number_as_str, absolute_start_time):
@@ -60,29 +62,29 @@ class LoadData:
 
 
         if len(cosine_features) >= 20:
-            data = []
-            index_offset = len(cosine_features) - 20
+            df = pd.DataFrame({
+                'cosine_feature': cosine_features[:-10],
+                'count_feature': count_features[:-10],
+                'hr_std': hr_std_features[:-10],
+                'hr_mean': hr_mean_features[:-10],
+                'time_feature': time_features[:-10],
+            })
 
-            # just return last 10 epochs
-            # for index, i in enumerate(cosine_features[-20:-10]):
-            #     temp_array = [
-            #         cosine_features[index + index_offset], 
-            #         count_features[index + index_offset], 
-            #         hr_features[index + index_offset], 
-            #         time_features[index + index_offset]
-            #     ]
-            #     data.append(np.array(temp_array))
+            df['count_feature_lag_1'] = df['count_feature'].shift(1)
+            df['count_feature_lag_2'] = df['count_feature'].shift(2)
 
-            for index, i in enumerate(cosine_features[:-10]):
-                temp_array = [
-                    cosine_features[index], 
-                    count_features[index], 
-                    hr_std_features[index],
-                    hr_mean_features[index],
-                    time_features[index]
-                ]
-                data.append(np.array(temp_array))
+            df['hr_std_lag_1'] = df['hr_std'].shift(1)
+            df['hr_std_lag_2'] = df['hr_std'].shift(2)
 
-            return data                
+            df['hr_mean_lag_1'] = df['hr_mean'].shift(1)
+            df['hr_mean_lag_2'] = df['hr_mean'].shift(2)
+
+            df['hr_mean_delta'] = df['hr_mean'] - df['hr_mean'].shift(2)
+            df = df.iloc[2:].reset_index(drop=True)
+
+            scaler = StandardScaler()
+            df['hr_mean_delta'] = scaler.fit_transform(df[['hr_mean_delta']])
+
+            return df            
         else:
             return None
