@@ -18,9 +18,9 @@ struct ContentView: View {
                     Text("y: \(motionManager.y)")
                     Text("z: \(motionManager.z)")
                     Text("HR: \(motionManager.hr)")
-                    Text("time: \(motionManager.relativeTime)")
-                    Text("stages: \(motionManager.sleepStagePredictions)")
-                    Text("last time: \(motionManager.lastUpdateTime)")
+                    Text("time: \(motionManager.time)")
+                    Text("stages: \(motionManager.sleepStagePredictions.map(String.init).joined(separator: ", "))")
+                    Text("post status: \(motionManager.postStatus)")
                 }
                 .padding(.vertical, 10)
                 
@@ -174,7 +174,7 @@ struct ContentView: View {
                                         // 2. Check if samples exist
                                         guard let samples = samples, !samples.isEmpty else {
                                             print("No sleep data found in the last 7 days.")
-                                            let errorJson = "{\"message\": \"No sleep data found in the last 7 days\"}"
+                                            let errorJson = "{\"message\": \"No sleep data found in the last 0 days\"}"
                                             motionManager.sendSleepDataToServer(errorJson)
                                             return
                                         }

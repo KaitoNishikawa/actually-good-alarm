@@ -2,9 +2,10 @@ import CoreMotion
 import Foundation
 import HealthKit
 import AVFoundation
-
 // Inherit from NSObject and conform to ObservableObject
+@MainActor
 class WatchMotionManager: NSObject, ObservableObject {
+    private let motionQueue = OperationQueue()
     private let movementManager = CMMotionManager()
     private let healthStore = HKHealthStore()
     private var heartRateQuery: HKAnchoredObjectQuery?
@@ -16,12 +17,17 @@ class WatchMotionManager: NSObject, ObservableObject {
     @Published var x: Double = 0
     @Published var y: Double = 0
     @Published var z: Double = 0
-    @Published var relativeTime: TimeInterval = 0
+    @Published var time: TimeInterval = 0
     @Published var hr: Double = 0
     @Published var sleepStagePredictions = [Int]()
-    @Published var lastUpdateTime: String = ""
+    @Published var postStatus: String = ""
 //    @Published var alarmTimeString: String = ""
 //    @Published var alarmTimePlus: String = ""
+    
+    private var lastX: Double = 0
+    private var lastY: Double = 0
+    private var lastZ: Double = 0
+    private var lastT: Double = 0
     
     // Properties for timekeeping
     private var startTimeAccel: TimeInterval?
@@ -140,24 +146,61 @@ class WatchMotionManager: NSObject, ObservableObject {
     // --- Sensor Data Collection ---
     private func startMotionUpdates() {
         guard movementManager.isAccelerometerAvailable else { return }
-        movementManager.accelerometerUpdateInterval = 0.2
+        movementManager.accelerometerUpdateInterval = 0.02
         
-        movementManager.startAccelerometerUpdates(to: OperationQueue.main) { [weak self] (data, error) in
+        var xBuffer: [Double] = []
+        var yBuffer: [Double] = []
+        var zBuffer: [Double] = []
+        var tBuffer: [Double] = []
+        
+        movementManager.startAccelerometerUpdates(to: motionQueue) { [weak self] (data, error) in
             guard let data = data, let self = self else { return }
-            
-            self.x = data.acceleration.x
-            self.y = data.acceleration.y
-            self.z = data.acceleration.z
             
             if self.startTimeAccel == nil {
                 self.startTimeAccel = data.timestamp
             }
-            self.relativeTime = data.timestamp - self.startTimeAccel!
+//            self.relativeTime = data.timestamp - self.startTimeAccel!
             
-            self.accelData["x"]?.append(data.acceleration.x)
-            self.accelData["y"]?.append(data.acceleration.y)
-            self.accelData["z"]?.append(data.acceleration.z)
-            self.accelData["timestamp"]?.append(self.relativeTime)
+            xBuffer.append(data.acceleration.x)
+            yBuffer.append(data.acceleration.y)
+            zBuffer.append(data.acceleration.z)
+            tBuffer.append(data.timestamp - self.startTimeAccel!)
+            
+            self.lastX = data.acceleration.x
+            self.lastY = data.acceleration.y
+            self.lastZ = data.acceleration.z
+            self.lastT = data.timestamp - self.startTimeAccel!
+            
+            if xBuffer.count >= 50{
+                let xChunk = xBuffer
+                let yChunk = yBuffer
+                let zChunk = zBuffer
+                let tChunk = tBuffer
+                
+                // Clear local buffers immediately so we can keep collecting
+                xBuffer.removeAll(keepingCapacity: true)
+                yBuffer.removeAll(keepingCapacity: true)
+                zBuffer.removeAll(keepingCapacity: true)
+                tBuffer.removeAll(keepingCapacity: true)
+                
+                DispatchQueue.main.async{
+                    self.accelData["x"]?.append(contentsOf: xChunk)
+                    self.accelData["y"]?.append(contentsOf: yChunk)
+                    self.accelData["z"]?.append(contentsOf: zChunk)
+                    self.accelData["timestamp"]?.append(contentsOf: tChunk)
+                }
+            }
+        }
+        
+        Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                
+                self.x = self.lastX
+                self.y = self.lastY
+                self.z = self.lastZ
+                self.time = self.lastT
+            }
         }
     }
     
@@ -178,11 +221,15 @@ class WatchMotionManager: NSObject, ObservableObject {
             anchor: nil,
             limit: HKObjectQueryNoLimit
         ) { (query, newSamples, deletedSamples, newAnchor, error) in
-            self.processHeartRateSamples(newSamples)
+            Task{
+                await self.processHeartRateSamples(newSamples)
+            }
         }
         
         self.heartRateQuery?.updateHandler = { (query, newSamples, deletedSamples, newAnchor, error) in
-            self.processHeartRateSamples(newSamples)
+            Task{
+                await self.processHeartRateSamples(newSamples)
+            }
         }
         
         healthStore.execute(self.heartRateQuery!)
@@ -231,7 +278,7 @@ class WatchMotionManager: NSObject, ObservableObject {
             absoluteStartTime: self.sessionStartDate?.timeIntervalSince1970 ?? Date().timeIntervalSince1970
         )
         
-        guard let url = URL(string: "http://10.10.197.249:5001/data") else { return }
+        guard let url = URL(string: "http://Kaitos-MacBook-Air.local:5001/data") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -240,6 +287,9 @@ class WatchMotionManager: NSObject, ObservableObject {
             request.httpBody = try JSONEncoder().encode(dataToSend)
         } catch {
             print("Error encoding JSON: \(error)")
+            DispatchQueue.main.async {
+                self.postStatus = "Encoding Error"
+            }
             return
         }
         
@@ -251,7 +301,9 @@ class WatchMotionManager: NSObject, ObservableObject {
                     do {
                         let predictionResponse = try JSONDecoder().decode(PredictionResponse.self, from: data)
                         DispatchQueue.main.async {
+                            self.postStatus = "Motion Sent: 200 OK"
                             print("Received predictions: \(predictionResponse.predictions)")
+                            
                             self.sleepStagePredictions = predictionResponse.predictions
                             
                             if self.shouldPlayAlarmSound(predictions: predictionResponse.predictions) {
@@ -260,12 +312,22 @@ class WatchMotionManager: NSObject, ObservableObject {
                         }
                     } catch {
                         print("Error decoding JSON response: \(error)")
+                        DispatchQueue.main.async {
+                            self.postStatus = "Motion Sent (Decode Err)"
+                        }
                     }
                 } else {
-                    print("POST request failed with status code: \((response as? HTTPURLResponse)?.statusCode ?? 0)")
+                    let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+                    print("POST request failed with status code: \(code)")
+                    DispatchQueue.main.async {
+                        self.postStatus = "Motion Err: \(code)"
+                    }
                 }
             } catch {
                 print("Error during POST request: \(error)")
+                DispatchQueue.main.async {
+                    self.postStatus = "Motion Fail: \(error.localizedDescription)"
+                }
             }
         }
         
@@ -283,7 +345,7 @@ class WatchMotionManager: NSObject, ObservableObject {
             self.x = 0
             self.y = 0
             self.z = 0
-            self.relativeTime = 0
+            self.time = 0
             self.hr = 0
         }
         
@@ -349,7 +411,7 @@ class WatchMotionManager: NSObject, ObservableObject {
         formatter.timeStyle = .medium
         
         print("Alarm Time:   \(formatter.string(from: alarmTime))")
-        print("Alarm date: \(month)/\(day)/\(year)")
+        print("Alarm date: \(month ?? 0)/\(day ?? 0)/\(year ?? 0)")
     }
     
     func shouldPlayAlarmSound(predictions: [Int]) -> Bool {
@@ -515,7 +577,7 @@ class WatchMotionManager: NSObject, ObservableObject {
     }
     
     func sendSleepDataToServer(_ jsonString: String) {
-        guard let url = URL(string: "http://10.10.197.249:5001/sleep_data") else { return }
+        guard let url = URL(string: "http://Kaitos-MacBook-Air.local:5001/sleep_data") else { return }
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -530,11 +592,21 @@ class WatchMotionManager: NSObject, ObservableObject {
                 
                 if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
                     print("Sleep data sent successfully!")
+                    DispatchQueue.main.async {
+                        self.postStatus = "Sleep Data Sent: 200 OK"
+                    }
                 } else {
-                    print("POST request failed with status code: \((response as? HTTPURLResponse)?.statusCode ?? 0)")
+                    let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+                    print("POST request failed with status code: \(code)")
+                    DispatchQueue.main.async {
+                        self.postStatus = "Sleep Err: \(code)"
+                    }
                 }
             } catch {
                 print("Error during POST request: \(error)")
+                DispatchQueue.main.async {
+                    self.postStatus = "Sleep Fail: \(error.localizedDescription)"
+                }
             }
         }
     }
@@ -545,39 +617,40 @@ class WatchMotionManager: NSObject, ObservableObject {
 
 // --- HKWorkoutSessionDelegate Conformance ---
 extension WatchMotionManager: HKWorkoutSessionDelegate {
-    func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {
+    nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {
         
-        // This is called when the session starts.
-        if toState == .running {
-            print("Workout session is running. Starting heart rate query.")
-            startHeartRateUpdates()
-        }
-        
-        // This is called after you tell the session to end.
-        if toState == .ended {
-            print("Workout session ended. Performing cleanup.")
-            
-            // 1. Stop the heart rate query
-            if let query = heartRateQuery {
-                healthStore.stop(query)
-                heartRateQuery = nil
+        Task { @MainActor in
+            if toState == .running {
+                print("Workout session is running. Starting heart rate query.")
+                self.startHeartRateUpdates()
             }
             
-            // 2. Stop the motion manager
-            movementManager.stopAccelerometerUpdates()
-            
-            // 3. Send the final data to the server
-            sendDataToServer()
-            
-            // 4. Reset the UI and data arrays
-            resetData()
-            
-            // 5. Finally, release the session object
-            self.workoutSession = nil
+            if toState == .ended {
+                print("Workout session ended. Performing cleanup.")
+                
+                if let query = self.heartRateQuery {
+                    self.healthStore.stop(query)
+                    self.heartRateQuery = nil
+                }
+                
+                // Stop the motion manager
+                self.movementManager.stopAccelerometerUpdates()
+                
+                // Send the final data to the server
+                self.sendDataToServer()
+                
+                // Reset the UI and data arrays
+                self.resetData()
+                
+                // Finally, release the session object
+                self.workoutSession = nil
+            }
         }
     }
     
-    func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
-        print("Workout session failed with error: \(error.localizedDescription)")
+    nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
+        Task { @MainActor in
+            print("Workout session failed with error: \(error.localizedDescription)")
+        }
     }
 }
