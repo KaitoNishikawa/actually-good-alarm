@@ -9,6 +9,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, project_root)
 file_number = datetime.now().strftime("%Y%m%d")
 # file_number = "20241222"
+# file_number = "20251225"
 print(f"date: {file_number}")
 
 from source.preprocessing2.preprocessing_runner import runner
@@ -64,6 +65,7 @@ def receive():
 def receive_sleep_data():
     if request.is_json:
         sleep_data = request.get_json()
+        sleep_data = sleep_data['sleepSegments']
         
         save_dir = 'sleep_data_logs'            
         filename = f"{save_dir}/sleep_data_{file_number}.json"

@@ -108,42 +108,7 @@ struct ContentView: View {
                         Spacer()
                         Button {
 //                            motionManager.sendDataToServer()
-                            motionManager.requestSleepAuthorization { success in
-                                if success {
-                                    motionManager.fetchRawSleepSamples(daysBack: 1) { samples, error in
-                                        // 1. Check for errors
-                                        if let error = error {
-                                            print("Failed to fetch sleep data: \(error.localizedDescription)")
-                                            let errorJson = "{\"message\": \"Failed to fetch sleep data: \(error.localizedDescription)\"}"
-                                            motionManager.sendSleepDataToServer(errorJson)
-                                            return
-                                        }
-
-                                        // 2. Check if samples exist
-                                        guard let samples = samples, !samples.isEmpty else {
-                                            print("No sleep data found in the last 7 days.")
-                                            let errorJson = "{\"message\": \"No sleep data found in the last 7 days\"}"
-                                            motionManager.sendSleepDataToServer(errorJson)
-                                            return
-                                        }
-
-                                        // 3. Convert to JSON
-                                        if let jsonString = motionManager.convertSamplesToJson(samples: samples) {
-                                            
-                                            // 4. Send to Server
-                                            print("Sending \(samples.count) segments to server...")
-                                            motionManager.sendSleepDataToServer(jsonString)
-                                            
-                                        } else {
-                                            print("Failed to convert samples to JSON.")
-                                            let errorJson = "{\"message\": \"Failed to convert samples to JSON\"}"
-                                            motionManager.sendSleepDataToServer(errorJson)
-                                        }
-                                    }
-                                } else {
-                                    print("User denied sleep permission or an error occurred.")
-                                }
-                            }
+                            motionManager.fetchAndSendSleepData()
                         } label: {
                             Text("Sleep Data")
                                 .font(.headline)
@@ -157,45 +122,9 @@ struct ContentView: View {
                     }
                     HStack{
                         Spacer()
-                        Button {
-                            motionManager.stopUpdates()
-                            
-                            motionManager.requestSleepAuthorization { success in
-                                if success {
-                                    motionManager.fetchRawSleepSamples(daysBack: 1) { samples, error in
-                                        // 1. Check for errors
-                                        if let error = error {
-                                            print("Failed to fetch sleep data: \(error.localizedDescription)")
-                                            let errorJson = "{\"message\": \"Failed to fetch sleep data: \(error.localizedDescription)\"}"
-                                            motionManager.sendSleepDataToServer(errorJson)
-                                            return
-                                        }
-
-                                        // 2. Check if samples exist
-                                        guard let samples = samples, !samples.isEmpty else {
-                                            print("No sleep data found in the last 7 days.")
-                                            let errorJson = "{\"message\": \"No sleep data found in the last 0 days\"}"
-                                            motionManager.sendSleepDataToServer(errorJson)
-                                            return
-                                        }
-
-                                        // 3. Convert to JSON
-                                        if let jsonString = motionManager.convertSamplesToJson(samples: samples) {
-                                            
-                                            // 4. Send to Server
-                                            print("Sending \(samples.count) segments to server...")
-                                            motionManager.sendSleepDataToServer(jsonString)
-                                            
-                                        } else {
-                                            print("Failed to convert samples to JSON.")
-                                            let errorJson = "{\"message\": \"Failed to convert samples to JSON\"}"
-                                            motionManager.sendSleepDataToServer(errorJson)
-                                        }
-                                    }
-                                } else {
-                                    print("User denied sleep permission or an error occurred.")
-                                }
-                            }   
+                        Button{
+//                            motionManager.stopUpdates()
+                            motionManager.stopAndSendAllData()
                         } label: {
                             Text("Stop")
                                 .font(.headline)
