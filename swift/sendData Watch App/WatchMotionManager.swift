@@ -2,6 +2,19 @@ import CoreMotion
 import Foundation
 import HealthKit
 import AVFoundation
+
+struct CombinedData: Codable {
+    let x: [Double]
+    let y: [Double]
+    let z: [Double]
+    let accel_timestamp: [TimeInterval]
+    let heartRate: [Double]
+    let heartRate_timestamp: [TimeInterval]
+    let absoluteStartTime: TimeInterval
+    let packageStartTime: TimeInterval
+    let userID: String
+}
+
 // Inherit from NSObject and conform to ObservableObject
 @MainActor
 class WatchMotionManager: NSObject, ObservableObject {
@@ -12,6 +25,7 @@ class WatchMotionManager: NSObject, ObservableObject {
     private var workoutSession: HKWorkoutSession? // Manages the workout lifecycle
     
     private var isSessionRunning = false
+    private var currentSessionID: UUID?
     
     // Published properties for the UI
     @Published var x: Double = 0
@@ -21,8 +35,6 @@ class WatchMotionManager: NSObject, ObservableObject {
     @Published var hr: Double = 0
     @Published var sleepStagePredictions = [Int]()
     @Published var postStatus: String = ""
-//    @Published var alarmTimeString: String = ""
-//    @Published var alarmTimePlus: String = ""
     
     private var lastX: Double = 0
     private var lastY: Double = 0
@@ -32,12 +44,16 @@ class WatchMotionManager: NSObject, ObservableObject {
     // Properties for timekeeping
     private var startTimeAccel: TimeInterval?
     private var sessionStartDate: Date?
+    private var packageStartDate: Date?
+    private var sendIntervalTime = 120.0
     
     //alarm vars
     private var alarmHour = 9
     private var alarmMin = 0
     private var timeWindow = 15
     private var alarmTime = Date()
+    
+//    private var combined_data_queue = [CombinedData]()
     
     // Data storage arrays
     private var accelData = [
@@ -85,8 +101,18 @@ class WatchMotionManager: NSObject, ObservableObject {
     
     // --- Lifecycle Management ---
     func startUpdates(hour: Int, minute: Int, window: Int) {
+        if isSessionRunning {
+            print("Session already running. Ignoring start request.")
+            return
+        }
+        
+        // 1. Generate a unique ID for THIS session
+        let newSessionID = UUID()
+        self.currentSessionID = newSessionID
+        
         // Set the start date for the new session first
         self.sessionStartDate = Date()
+        self.packageStartDate = Date()
         
         self.isSessionRunning = true
         
@@ -111,29 +137,32 @@ class WatchMotionManager: NSObject, ObservableObject {
         initializeAlarmTime()
         print(shouldPlayAlarmSound(predictions: [1,1,1]))
         
-        print("Scheduling first data send.")
-        scheduleDataSend()
+        print("Scheduling first data send with ID: \(newSessionID)")
+        scheduleDataSend(for: newSessionID)
     }
     
-    private func scheduleDataSend() {
+    private func scheduleDataSend(for sessionID: UUID) {
         // Ensure the session is still running before scheduling the next send
-        guard isSessionRunning else {
-            print("Session stopped. Halting data sending schedule.")
+        guard self.currentSessionID == sessionID else {
+            print("Stale schedule request detected. Stopping.")
             return
         }
         
         // Use a 15-second interval for testing. Change to 300 for production.
-        let delayInSeconds: TimeInterval = 300
+        let delayInSeconds: TimeInterval = self.sendIntervalTime
         
         DispatchQueue.main.asyncAfter(deadline: .now() + delayInSeconds) { [weak self] in
             // Double-check the session is still running when the task executes
-            guard let self = self, self.isSessionRunning else { return }
+            guard let self = self, self.currentSessionID == sessionID else {
+                print("Timer fired for an old session. stopping.")
+                return
+            }
             
             print("Sending data...")
             self.sendDataToServer()
             
             // Schedule the next send
-            self.scheduleDataSend()
+            self.scheduleDataSend(for: sessionID)
         }
     }
     
@@ -254,15 +283,17 @@ class WatchMotionManager: NSObject, ObservableObject {
     
     // --- Data Handling ---
     func sendDataToServer() {
-        struct CombinedData: Codable {
-            let x: [Double]
-            let y: [Double]
-            let z: [Double]
-            let accel_timestamp: [TimeInterval]
-            let heartRate: [Double]
-            let heartRate_timestamp: [TimeInterval]
-            let absoluteStartTime: TimeInterval
-        }
+//        struct CombinedData: Codable {
+//            let x: [Double]
+//            let y: [Double]
+//            let z: [Double]
+//            let accel_timestamp: [TimeInterval]
+//            let heartRate: [Double]
+//            let heartRate_timestamp: [TimeInterval]
+//            let absoluteStartTime: TimeInterval
+//            let packageStartTime: TimeInterval
+//            let userID: String
+//        }
         
         struct PredictionResponse: Codable {
             let predictions: [Int]
@@ -275,10 +306,14 @@ class WatchMotionManager: NSObject, ObservableObject {
             accel_timestamp: self.accelData["timestamp"] ?? [],
             heartRate: self.heartRateData["heartRate"] ?? [],
             heartRate_timestamp: self.heartRateData["timestamp"] ?? [],
-            absoluteStartTime: self.sessionStartDate?.timeIntervalSince1970 ?? Date().timeIntervalSince1970
+            absoluteStartTime: self.sessionStartDate?.timeIntervalSince1970 ?? Date().timeIntervalSince1970,
+            packageStartTime: self.packageStartDate?.timeIntervalSince1970 ?? (Date().timeIntervalSince1970 - self.sendIntervalTime),
+            userID: "0001"
         )
+//        combined_data_queue.append(dataToSend)
         
-        guard let url = URL(string: "http://Kaitos-MacBook-Air.local:5001/data") else { return }
+        guard let url = URL(string: "http://192.168.1.247:5001/data") else { return }
+//        guard let url = URL(string: "http://DESKTOP-TLHPLE1.local:5001/data") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -313,7 +348,7 @@ class WatchMotionManager: NSObject, ObservableObject {
                     } catch {
                         print("Error decoding JSON response: \(error)")
                         DispatchQueue.main.async {
-                            self.postStatus = "Motion Sent (Decode Err)"
+                            self.postStatus = "Motion Sent"
                         }
                     }
                 } else {
@@ -334,6 +369,7 @@ class WatchMotionManager: NSObject, ObservableObject {
         //reset data
         self.accelData = ["x": [], "y": [], "z": [], "timestamp": []]
         self.heartRateData = ["heartRate": [], "timestamp": []]
+        self.packageStartDate = Date()
     }
     
     private func resetData() {
@@ -504,7 +540,7 @@ class WatchMotionManager: NSObject, ObservableObject {
         healthStore.execute(query)
     }
     
-    struct SleepSegment: Encodable {
+    struct SleepSegment: Codable {
         let stage: String
         let durationMinutes: Double
         let startDate: Date
@@ -555,6 +591,18 @@ class WatchMotionManager: NSObject, ObservableObject {
             sleepSegments.append(segment)
         }
         
+        struct SleepDataPayload: Codable {
+            let userID: String
+            let sessionStartTime: TimeInterval
+            let sleepSegments: [SleepSegment]
+        }
+        
+        let payload = SleepDataPayload(
+            userID: "0001",
+            sessionStartTime: self.sessionStartDate?.timeIntervalSince1970 ?? Date().timeIntervalSince1970,
+            sleepSegments: sleepSegments
+        )
+        
         // 3. Encode the array of structs into JSON Data
         let encoder = JSONEncoder()
         // Optional: Format the dates in a standard way (ISO8601 is recommended)
@@ -563,7 +611,7 @@ class WatchMotionManager: NSObject, ObservableObject {
         encoder.outputFormatting = .prettyPrinted
         
         do {
-            let jsonData = try encoder.encode(sleepSegments)
+            let jsonData = try encoder.encode(payload)
             
             // 4. Convert JSON Data to a String for easy viewing/transfer
             if let jsonString = String(data: jsonData, encoding: .utf8) {
@@ -577,7 +625,8 @@ class WatchMotionManager: NSObject, ObservableObject {
     }
     
     func sendSleepDataToServer(_ jsonString: String) {
-        guard let url = URL(string: "http://Kaitos-MacBook-Air.local:5001/sleep_data") else { return }
+        guard let url = URL(string: "http://192.168.1.247:5001/sleep_data") else { return }
+//        guard let url = URL(string: "http://DESKTOP-TLHPLE1.local:5001/sleep_data") else { return }
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -609,6 +658,100 @@ class WatchMotionManager: NSObject, ObservableObject {
                 }
             }
         }
+    }
+    
+    // --- New Helper Function for Consistent Sleep Sending ---
+    // This handles the logic and updates UI on error instead of sending error JSONs.
+    // You can call this from your ContentView button to clean up that code too.
+    func fetchAndSendSleepData() {
+        self.requestSleepAuthorization { [weak self] success in
+            guard let self = self else { return }
+            
+            if success {
+                self.fetchRawSleepSamples(daysBack: 1) { samples, error in
+                    // 1. Error Handling (UI Update Only)
+                    if let error = error {
+                        print("Error fetching sleep: \(error.localizedDescription)")
+                        DispatchQueue.main.async {
+                            self.postStatus = "Sleep Fetch Err: \(error.localizedDescription)"
+                        }
+                        return
+                    }
+                    
+                    // 2. Empty Data Check (UI Update Only)
+                    guard let samples = samples, !samples.isEmpty else {
+                        print("No sleep data found.")
+                        DispatchQueue.main.async {
+                            self.postStatus = "No Sleep Data (24h)"
+                        }
+                        return
+                    }
+                    
+                    // 3. Conversion and Send
+                    if let jsonString = self.convertSamplesToJson(samples: samples) {
+                        print("Sending \(samples.count) sleep segments...")
+                        self.sendSleepDataToServer(jsonString)
+                    } else {
+                        DispatchQueue.main.async {
+                            self.postStatus = "Sleep JSON Err"
+                        }
+                    }
+                }
+            } else {
+                print("Sleep auth denied.")
+                DispatchQueue.main.async {
+                    self.postStatus = "Sleep Auth Denied"
+                }
+            }
+        }
+    }
+    
+    // --- Unified Stop & Sync Function ---
+    func stopAndSendAllData() {
+        print("STOP BUTTON PRESSED: Stopping and Sending All Data")
+        
+        // 1. Stop the session and sensors immediately
+        self.isSessionRunning = false
+        self.currentSessionID = nil
+        
+        self.movementManager.stopAccelerometerUpdates()
+        
+        if let query = self.heartRateQuery {
+            self.healthStore.stop(query)
+        }
+        self.heartRateQuery = nil
+        
+        // End the HK session.
+        // (Even if the delegate fires, we manually send data below to ensure it's not missed)
+        self.workoutSession?.end()
+        self.workoutSession = nil
+        
+        // 2. Stop Alarm
+        self.stopSound()
+        
+        // 3. Send the pending Motion/Heart Rate Data
+        // This function captures the current buffers, initiates the upload,
+        // and THEN clears the local arrays immediately.
+        self.sendDataToServer()
+        
+        // 4. Reset UI visual values
+        DispatchQueue.main.async {
+            self.x = 0
+            self.y = 0
+            self.z = 0
+            self.time = 0
+            self.hr = 0
+            self.sleepStagePredictions = []
+            // We don't reset postStatus yet so you can see "Sending..." updates
+        }
+        
+        // 5. Fetch and Send Sleep Data (Logic moved from ContentView)
+        self.fetchAndSendSleepData()
+        
+        // 6. Reset Internal State
+        self.startTimeAccel = nil
+//        self.sessionStartDate = nil
+        self.packageStartDate = nil
     }
 }
 

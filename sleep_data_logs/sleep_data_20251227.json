@@ -1,0 +1,32 @@
+[
+    {
+        "durationMinutes": 10.986360677083333,
+        "stage": "Asleep (Unspecified)",
+        "startDate": "2025-12-27T14:20:36Z",
+        "endDate": "2025-12-27T14:31:35Z"
+    },
+    {
+        "durationMinutes": 8.990278625488282,
+        "stage": "Awake",
+        "startDate": "2025-12-27T14:31:35Z",
+        "endDate": "2025-12-27T14:40:35Z"
+    },
+    {
+        "durationMinutes": 82.89530334472656,
+        "stage": "Asleep (Unspecified)",
+        "startDate": "2025-12-27T14:40:35Z",
+        "endDate": "2025-12-27T16:03:29Z"
+    },
+    {
+        "durationMinutes": 4.999428304036458,
+        "stage": "Awake",
+        "startDate": "2025-12-27T16:03:29Z",
+        "endDate": "2025-12-27T16:08:29Z"
+    },
+    {
+        "durationMinutes": 59.942772420247394,
+        "stage": "Asleep (Unspecified)",
+        "startDate": "2025-12-27T16:08:29Z",
+        "endDate": "2025-12-27T17:08:25Z"
+    }
+]
