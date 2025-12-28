@@ -26,30 +26,32 @@ def hello_world():
 @app.route('/data', methods=["POST"])
 def receive():
     if request.is_json:
-        JSONData = request.get_json()
+        json_data = request.get_json()
+        data_list = json_data if isinstance(json_data, list) else [json_data]
 
-        accelData = {
-            'x': JSONData['x'],
-            'y': JSONData['y'],
-            'z': JSONData['z'],
-            'timestamp': JSONData['accel_timestamp']
-        }
-        HRData = {
-            'HR': JSONData['heartRate'],
-            'timestamp': JSONData['heartRate_timestamp']
-        }
-        absolute_start_time = JSONData.get('absoluteStartTime', None)
+        for JSONData in data_list:
+            accelData = {
+                'x': JSONData['x'],
+                'y': JSONData['y'],
+                'z': JSONData['z'],
+                'timestamp': JSONData['accel_timestamp']
+            }
+            HRData = {
+                'HR': JSONData['heartRate'],
+                'timestamp': JSONData['heartRate_timestamp']
+            }
+            absolute_start_time = JSONData.get('absoluteStartTime', None)
 
-        print(f"x length: {len(accelData['x'])}")
-        print(f"y length: {len(accelData['y'])}")
-        print(f"z length: {len(accelData['z'])}")
-        print(f"time length: {len(accelData['timestamp'])}")
-        print(f"hr length: {len(HRData['HR'])}")
-        print(f"hr time length: {len(HRData['timestamp'])}")
+            print(f"x length: {len(accelData['x'])}")
+            print(f"y length: {len(accelData['y'])}")
+            print(f"z length: {len(accelData['z'])}")
+            print(f"time length: {len(accelData['timestamp'])}")
+            print(f"hr length: {len(HRData['HR'])}")
+            print(f"hr time length: {len(HRData['timestamp'])}")
 
-        file_number_as_str = str(file_number)
+            file_number_as_str = str(file_number)
 
-        LoadData.write_data_to_files(accelData, HRData, file_number_as_str, absolute_start_time)
+            LoadData.write_data_to_files(accelData, HRData, file_number_as_str, absolute_start_time)
         runner.run_preprocessing([file_number_as_str])
         data = LoadData.get_features(file_number_as_str)
 
