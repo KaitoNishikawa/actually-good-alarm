@@ -86,6 +86,22 @@ def smooth_gauss(y, box_pts):
     return sum_value
 
 
+def smooth_gauss_causal(y, box_pts):
+    box = np.ones(box_pts) / box_pts
+    mu = box_pts - 1
+    sigma = 50  # seconds
+
+    for ind in range(0, box_pts):
+        box[ind] = np.exp(-1 / 2 * (((ind - mu) / sigma) ** 2))
+
+    box = box / np.sum(box)
+    sum_value = 0
+    for ind in range(0, box_pts):
+        sum_value += box[ind] * y[ind]
+
+    return sum_value
+
+
 def convolve_with_dog(y, box_pts):
     y = y - np.mean(y)
     box = np.ones(box_pts) / box_pts

@@ -3,8 +3,8 @@ import os
 import joblib
 from sklearn.metrics import classification_report
 
-df = pd.read_csv("model_stuff/data/test/bigboy_hella_features.csv")
-# x = df[['cosine_feature', 'count_feature', 'hr_std', 'hr_mean', 'time_feature', 'hr_mean_diff']]
+df = pd.read_csv("model_stuff/data/test/bigboy_hella_features_new_time_window.csv")
+# x = df[['cosine_feature', 'count_feature', 'hr_std', 'hr_mean', 'time_feature']]
 x = df[['cosine_feature', 'count_feature', 'hr_std', 'hr_mean', 'time_feature', 
         'count_feature_lag_1', 'count_feature_lag_2', 'hr_std_lag_1', 'hr_std_lag_2', 
         'hr_mean_lag_1', 'hr_mean_lag_2', 'hr_mean_delta'
@@ -13,7 +13,7 @@ y = df['psg_label']
 
 y.replace({5: 4}, inplace=True)
 
-models_dir = "model_stuff/saved_models/hella_features"
+models_dir = "model_stuff/saved_models/hella_features_new_time_window"
 
 print(f"Evaluating models from: {models_dir}")
 if os.path.exists(models_dir):

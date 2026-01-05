@@ -58,28 +58,24 @@ class PSGService(object):
             return PSGRawDataCollection(subject_id=subject_id, data=data)
 
     @staticmethod
+    def get_original_start_time(subject_id):
+        psg_path = str(utils.get_project_root().joinpath('data/labels/' + subject_id + '_labeled_sleep.npy'))
+        raw_data = np.load(psg_path, mmap_mode='r')
+        return raw_data[0, 0]
+
+    @staticmethod
     def read_precleaned(subject_id):
-        psg_path = str(utils.get_project_root().joinpath('data/labels/' + subject_id + '_labeled_sleep.txt'))
+        psg_path = str(utils.get_project_root().joinpath('data/labels/' + subject_id + '_labeled_sleep.npy'))
         data = []
 
-        with open(psg_path, 'rt') as csv_file:
-            file_reader = csv.reader(csv_file, delimiter=' ', quotechar='|')
-            count = 0
-            rows_per_epoch = 1
-            for row in file_reader:
-                if count == 0:
-                    start_time = float(row[0])
-                    start_score = int(row[1])
-                    epoch = Epoch(timestamp=start_time, index=1)
-                    data.append(StageItem(epoch=epoch, stage=PSGConverter.get_label_from_int(start_score)))
-                else:
-                    timestamp = start_time + count * 30
-                    score = int(row[1])
-                    epoch = Epoch(timestamp=timestamp,
-                                  index=(1 + int(np.floor(count / rows_per_epoch))))
+        raw_data = np.load(psg_path)
 
-                    data.append(StageItem(epoch=epoch, stage=PSGConverter.get_label_from_int(score)))
-                count = count + 1
+        for i in range(len(raw_data)):
+            timestamp = raw_data[i, 0]
+            score = int(raw_data[i, 1])
+            epoch = Epoch(timestamp=timestamp, index=i + 1)
+            data.append(StageItem(epoch=epoch, stage=PSGConverter.get_label_from_int(score)))
+
         return PSGRawDataCollection(subject_id=subject_id, data=data)
 
     @staticmethod
@@ -103,14 +99,14 @@ class PSGService(object):
             data_array.append([stage_item.epoch.timestamp, stage_item.stage.value])
 
         np_psg_array = np.array(data_array)
-        psg_output_path = Constants.CROPPED_FILE_PATH.joinpath(psg_raw_data_collection.subject_id + "_cleaned_psg.out")
+        psg_output_path = Constants.CROPPED_FILE_PATH.joinpath(psg_raw_data_collection.subject_id + "_cleaned_psg.npy")
 
-        np.savetxt(psg_output_path, np_psg_array, fmt='%f')
+        np.save(psg_output_path, np_psg_array)
 
     @staticmethod
     def load_cropped_array(subject_id):
-        cropped_psg_path = Constants.CROPPED_FILE_PATH.joinpath(subject_id + "_cleaned_psg.out")
-        return pd.read_csv(str(cropped_psg_path), delimiter=' ').values
+        cropped_psg_path = Constants.CROPPED_FILE_PATH.joinpath(subject_id + "_cleaned_psg.npy")
+        return np.load(str(cropped_psg_path))
 
     @staticmethod
     def load_cropped(subject_id):

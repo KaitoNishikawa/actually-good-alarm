@@ -17,7 +17,6 @@ def run_preprocessing(subject_set):
         RawDataProcessor.crop_all(str(subject))
 
     if Constants.INCLUDE_CIRCADIAN:
-        print("true")
         ActivityCountService.build_activity_counts()  # This uses MATLAB, but has been replaced with a python implementation
         CircadianService.build_circadian_model()      # Both of the circadian lines require MATLAB to run
         CircadianService.build_circadian_mesa()       # INCLUDE_CIRCADIAN = False by default because most people don't have MATLAB
@@ -32,5 +31,5 @@ def run_preprocessing(subject_set):
 subject_ids = SubjectBuilder.get_all_subject_ids()
 run_preprocessing(subject_ids)
 
-for subject_id in subject_ids:
-    DataPlotBuilder.make_data_demo(subject_id, False)
+# for subject_id in subject_ids:
+#     DataPlotBuilder.make_data_demo(subject_id, False)

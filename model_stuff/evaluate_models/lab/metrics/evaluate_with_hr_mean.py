@@ -3,13 +3,13 @@ import os
 import joblib
 from sklearn.metrics import classification_report
 
-df = pd.read_csv("model_stuff/data/test/bigboy_with_hr_mean.csv")
+df = pd.read_csv("model_stuff/data/test/bigboy_hella_features_new_time_window.csv")
 x = df[['cosine_feature', 'count_feature', 'hr_std', 'hr_mean', 'time_feature']]
 y = df['psg_label']
 
 y.replace({5: 4}, inplace=True)
 
-models_dir = "model_stuff/saved_models/with_hr_mean"
+models_dir = "model_stuff/saved_models/hella_features_new_time_window"
 
 print(f"Evaluating models from: {models_dir}")
 if os.path.exists(models_dir):
