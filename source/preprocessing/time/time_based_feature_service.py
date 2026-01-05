@@ -9,52 +9,52 @@ class TimeBasedFeatureService(object):
     @staticmethod
     def load_time(subject_id):
         feature_path = TimeBasedFeatureService.get_path_for_time(subject_id)
-        feature = pd.read_csv(str(feature_path)).values
+        feature = np.load(str(feature_path))
         return feature
 
     @staticmethod
     def get_path_for_time(subject_id):
-        return Constants.FEATURE_FILE_PATH.joinpath(subject_id + '_time_feature.out')
+        return Constants.FEATURE_FILE_PATH.joinpath(subject_id + '_time_feature.npy')
 
     @staticmethod
     def write_time(subject_id, feature):
         feature_path = TimeBasedFeatureService.get_path_for_time(subject_id)
-        np.savetxt(feature_path, feature, fmt='%f')
+        np.save(feature_path, feature)
 
     @staticmethod
     def load_circadian_model(subject_id):
         feature_path = TimeBasedFeatureService.get_path_for_circadian_model(subject_id)
-        feature = pd.read_csv(str(feature_path), delimiter=' ').values
+        feature = np.load(str(feature_path))
         return feature
 
     @staticmethod
     def get_path_for_circadian_model(subject_id):
-        return Constants.FEATURE_FILE_PATH.joinpath(subject_id + '_circadian_feature.out')
+        return Constants.FEATURE_FILE_PATH.joinpath(subject_id + '_circadian_feature.npy')
 
     @staticmethod
     def write_circadian_model(subject_id, feature):
         feature_path = TimeBasedFeatureService.get_path_for_circadian_model(subject_id)
-        np.savetxt(feature_path, feature, fmt='%f')
+        np.save(feature_path, feature)
 
     @staticmethod
     def load_cosine(subject_id):
         feature_path = TimeBasedFeatureService.get_path_for_cosine(subject_id)
-        feature = pd.read_csv(str(feature_path)).values
+        feature = np.load(str(feature_path))
         return feature
 
     @staticmethod
     def get_path_for_cosine(subject_id):
-        return Constants.FEATURE_FILE_PATH.joinpath(subject_id + '_cosine_feature.out')
+        return Constants.FEATURE_FILE_PATH.joinpath(subject_id + '_cosine_feature.npy')
 
     @staticmethod
     def write_cosine(subject_id, feature):
         feature_path = TimeBasedFeatureService.get_path_for_cosine(subject_id)
-        np.savetxt(feature_path, feature, fmt='%f')
+        np.save(feature_path, feature)
 
     @staticmethod
-    def build_time(valid_epochs):
+    def build_time(valid_epochs, start_time=None):
         features = []
-        first_timestamp = valid_epochs[0].timestamp
+        first_timestamp = start_time if start_time is not None else valid_epochs[0].timestamp
         for epoch in valid_epochs:
             value = epoch.timestamp - first_timestamp
 
@@ -79,10 +79,9 @@ class TimeBasedFeatureService(object):
                                 2 * np.pi / Constants.SECONDS_PER_DAY)
 
     @staticmethod
-    def build_cosine(valid_epochs):
+    def build_cosine(valid_epochs, start_time=None):
         features = []
-        first_value = TimeBasedFeatureService.cosine_proxy(0)
-        first_timestamp = valid_epochs[0].timestamp
+        first_timestamp = start_time if start_time is not None else valid_epochs[0].timestamp
 
         for epoch in valid_epochs:
             value = TimeBasedFeatureService.cosine_proxy(epoch.timestamp - first_timestamp)

@@ -9,14 +9,14 @@ class MotionFeatureService(object):
     @staticmethod
     def load(subject_id):
         motion_feature_path = MotionFeatureService.get_path(subject_id)
-        feature = pd.read_csv(str(motion_feature_path)).values
+        feature = np.load(str(motion_feature_path))
         return feature
 
     @staticmethod
     def get_path(subject_id):
-        return Constants.FEATURE_FILE_PATH.joinpath(subject_id + '_motion_feature.out')
+        return Constants.FEATURE_FILE_PATH.joinpath(subject_id + '_motion_feature.npy')
 
     @staticmethod
     def write(subject_id, feature):
         motion_feature_path = MotionFeatureService.get_path(subject_id)
-        np.savetxt(motion_feature_path, feature, fmt='%f')
+        np.save(motion_feature_path, feature)

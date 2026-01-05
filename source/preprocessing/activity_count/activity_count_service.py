@@ -13,7 +13,7 @@ class ActivityCountService(object):
     @staticmethod
     def load_cropped(subject_id):
         activity_counts_path = ActivityCountService.get_cropped_file_path(subject_id)
-        counts_array = ActivityCountService.load(activity_counts_path)
+        counts_array = np.load(str(activity_counts_path))
         return ActivityCountCollection(subject_id=subject_id, data=counts_array)
 
     @staticmethod
@@ -23,7 +23,7 @@ class ActivityCountService(object):
 
     @staticmethod
     def get_cropped_file_path(subject_id):
-        return Constants.CROPPED_FILE_PATH.joinpath(subject_id + "_cleaned_counts.out")
+        return Constants.CROPPED_FILE_PATH.joinpath(subject_id + "_cleaned_counts.npy")
 
     @staticmethod
     def build_activity_counts():
@@ -64,7 +64,7 @@ class ActivityCountService(object):
         output = np.hstack((time_counts, counts))
 
         activity_count_output_path = ActivityCountService.get_cropped_file_path(subject_id)
-        np.savetxt(activity_count_output_path, output, fmt='%f', delimiter=',')
+        np.save(activity_count_output_path, output)
 
     @staticmethod
     def max2epochs(data, fs, epoch):

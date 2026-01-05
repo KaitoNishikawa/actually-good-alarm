@@ -13,22 +13,22 @@ class ActivityCountFeatureService(object):
     @staticmethod
     def load(subject_id):
         activity_count_feature_path = ActivityCountFeatureService.get_path(subject_id)
-        feature = pd.read_csv(str(activity_count_feature_path)).values
+        feature = np.load(str(activity_count_feature_path))
         return feature
 
     @staticmethod
     def get_path(subject_id):
-        return Constants.FEATURE_FILE_PATH.joinpath(subject_id + '_count_feature.out')
+        return Constants.FEATURE_FILE_PATH.joinpath(subject_id + '_count_feature.npy')
 
     @staticmethod
     def write(subject_id, feature):
         activity_counts_feature_path = ActivityCountFeatureService.get_path(subject_id)
-        np.savetxt(activity_counts_feature_path, feature, fmt='%f')
+        np.save(activity_counts_feature_path, feature)
 
     @staticmethod
     def get_window(timestamps, epoch):
         start_time = epoch.timestamp - ActivityCountFeatureService.WINDOW_SIZE
-        end_time = epoch.timestamp + Epoch.DURATION + ActivityCountFeatureService.WINDOW_SIZE
+        end_time = epoch.timestamp + Epoch.DURATION
         timestamps_ravel = timestamps.ravel()
         indices_in_range = np.unravel_index(np.where((timestamps_ravel > start_time) & (timestamps_ravel < end_time)),
                                             timestamps.shape)
@@ -46,7 +46,12 @@ class ActivityCountFeatureService(object):
         interpolated_timestamps, interpolated_counts = ActivityCountFeatureService.interpolate(
             activity_count_collection)
 
+        min_timestamp = np.amin(interpolated_timestamps)
+
         for epoch in valid_epochs:
+            if epoch.timestamp - min_timestamp < ActivityCountFeatureService.WINDOW_SIZE:
+                continue
+
             indices_in_range = ActivityCountFeatureService.get_window(interpolated_timestamps, epoch)
             activity_counts_in_range = interpolated_counts[indices_in_range]
 
@@ -57,8 +62,8 @@ class ActivityCountFeatureService(object):
 
     @staticmethod
     def get_feature(count_values):
-        convolution = utils.smooth_gauss(count_values.flatten(), np.shape(count_values.flatten())[0])
-        return np.array([convolution])
+        convolution = utils.smooth_gauss_causal(count_values.flatten(), np.shape(count_values.flatten())[0])
+        return convolution
 
     @staticmethod
     def interpolate(activity_count_collection):

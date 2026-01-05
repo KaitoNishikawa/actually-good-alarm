@@ -1,3 +1,4 @@
+import numpy as np
 import csv
 
 subjects_as_ints = [
@@ -18,31 +19,24 @@ for i in subjects_as_ints:
     time_features = []
     psg_labels = []
 
-    with open("outputs_lab/features/" + subject_number + "_cosine_feature.out", 'r') as file:
-        for line in file:
-            cosine_features.append(float(line))
+    cosine = np.load("outputs_lab/features/" + subject_number + "_cosine_feature.npy")
+    cosine_features = cosine.tolist()
 
-    with open("outputs_lab/features/" + subject_number + "_count_feature.out", 'r') as file:
-        for line in file:
-            count_features.append(float(line))
+    count = np.load("outputs_lab/features/" + subject_number + "_count_feature.npy")
+    count_features = count.tolist()
 
-    with open("outputs_lab/features/" + subject_number + "_hr_feature.out", 'r') as file:
-        for line in file:
-            parts = line.strip().split()
-            hr_std_features.append(float(parts[0]))
-            if len(parts) > 1:
-                hr_mean_features.append(float(parts[1]))
-            else:
-                hr_mean_features.append(0.0)
+    hr_std = np.load("outputs_lab/features/" + subject_number + "_hr_feature.npy")
+    hr_std_features = hr_std.tolist()
+    
+    hr_mean = np.load("outputs_lab/features/" + subject_number + "_hr_mean_feature.npy")
+    hr_mean_features = hr_mean.tolist()
             
-    with open("outputs_lab/features/" + subject_number + "_time_feature.out", 'r') as file:
-        for line in file:
-            time_features.append(float(line))
+    time = np.load("outputs_lab/features/" + subject_number + "_time_feature.npy")
+    time_features = time.tolist()
 
-    with open("outputs_lab/features/" + subject_number + "_psg_labels.out", 'r') as file:
-        for line in file:
-            line = line.strip()
-            psg_labels.append(3 if int(float(line)) == 4 else int(float(line)))
+    psg = np.load("outputs_lab/features/" + subject_number + "_psg_labels.npy")
+    psg = np.where(psg == 4, 3, psg)  
+    psg_labels = psg.astype(int).tolist()
 
     data = []
     data.append(labels)
@@ -58,7 +52,7 @@ for i in subjects_as_ints:
 
         data.append(newArray)
 
-    with open(f'model_stuff/data/test/individual/with_hr_mean/{i}.csv', 'w', newline='') as csvfile:
+    with open(f'model_stuff/data/test/individual/new_time_window/{i}.csv', 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerows(data)
 

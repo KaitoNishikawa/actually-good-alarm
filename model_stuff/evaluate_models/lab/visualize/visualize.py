@@ -10,8 +10,8 @@ subjects_as_ints = [
 test_sets = {}
 
 for i in subjects_as_ints:
-    df = pd.read_csv(f"model_stuff/data/test/individual/hella_features/{i}.csv")
-    # x = df[['cosine_feature', 'count_feature', 'hr_std', 'hr_mean', 'time_feature', 'hr_mean_diff']]
+    df = pd.read_csv(f"model_stuff/data/test/individual/hella_features_new_time_window/{i}.csv")
+    # x = df[['cosine_feature', 'count_feature', 'hr_std', 'hr_mean', 'time_feature']]
     x = df[['cosine_feature', 'count_feature', 'hr_std', 'hr_mean', 'time_feature', 
         'count_feature_lag_1', 'count_feature_lag_2', 'hr_std_lag_1', 'hr_std_lag_2', 
         'hr_mean_lag_1', 'hr_mean_lag_2', 'hr_mean_delta'
@@ -22,7 +22,8 @@ for i in subjects_as_ints:
 
     test_sets[i] = [x, y]
 
-models_dir = "model_stuff/saved_models/hella_features/Random_Forest.joblib"
+# models_dir = "model_stuff/saved_models/hella_features_new_time_window/Random_Forest.joblib"
+models_dir = "model_stuff/saved_models/hella_features_new_time_window/Gradient_Boosting.joblib"
 clf = joblib.load(models_dir)
 
 for subject_id, (x, y) in test_sets.items():
