@@ -8,7 +8,7 @@ sys.path.insert(0, project_root)
 from model_stuff.evaluate_models.apple.visualize.plot_data import PlotData
 
 # file_numbers = ['20251213', '20251214', '20251215', '20251217', '20251219', '20251221', '20251222']
-file_numbers = ['20251228']
+file_numbers = ['20251231']
 
 for file_number in file_numbers:   
     PlotData.plot_apple_and_model_data(file_number)

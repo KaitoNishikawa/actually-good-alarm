@@ -13,6 +13,12 @@ struct CombinedData: Codable {
     let absoluteStartTime: TimeInterval
     let packageStartTime: TimeInterval
     let userID: String
+    let isLast: Bool
+}
+
+struct PredictionGetData: Codable {
+    let userID: String
+    let absoluteStartTime: TimeInterval
 }
 
 // Inherit from NSObject and conform to ObservableObject
@@ -33,7 +39,7 @@ class WatchMotionManager: NSObject, ObservableObject {
     @Published var z: Double = 0
     @Published var time: TimeInterval = 0
     @Published var hr: Double = 0
-    @Published var sleepStagePredictions = [Int]()
+    @Published var sleepStagePredictions: String = ""
     @Published var postStatus: String = ""
     
     private var lastX: Double = 0
@@ -45,7 +51,7 @@ class WatchMotionManager: NSObject, ObservableObject {
     private var startTimeAccel: TimeInterval?
     private var sessionStartDate: Date?
     private var packageStartDate: Date?
-    private var sendIntervalTime = 120.0
+    private var sendIntervalTime = 60.0
     
     //alarm vars
     private var alarmHour = 9
@@ -53,7 +59,7 @@ class WatchMotionManager: NSObject, ObservableObject {
     private var timeWindow = 15
     private var alarmTime = Date()
     
-//    private var combined_data_queue = [CombinedData]()
+    private var combined_data_queue = [CombinedData]()
     
     // Data storage arrays
     private var accelData = [
@@ -159,7 +165,7 @@ class WatchMotionManager: NSObject, ObservableObject {
             }
             
             print("Sending data...")
-            self.sendDataToServer()
+            self.sendDataToServer(false)
             
             // Schedule the next send
             self.scheduleDataSend(for: sessionID)
@@ -282,19 +288,7 @@ class WatchMotionManager: NSObject, ObservableObject {
     }
     
     // --- Data Handling ---
-    func sendDataToServer() {
-//        struct CombinedData: Codable {
-//            let x: [Double]
-//            let y: [Double]
-//            let z: [Double]
-//            let accel_timestamp: [TimeInterval]
-//            let heartRate: [Double]
-//            let heartRate_timestamp: [TimeInterval]
-//            let absoluteStartTime: TimeInterval
-//            let packageStartTime: TimeInterval
-//            let userID: String
-//        }
-        
+    func sendDataToServer(_ isLast: Bool) {
         struct PredictionResponse: Codable {
             let predictions: [Int]
         }
@@ -308,68 +302,111 @@ class WatchMotionManager: NSObject, ObservableObject {
             heartRate_timestamp: self.heartRateData["timestamp"] ?? [],
             absoluteStartTime: self.sessionStartDate?.timeIntervalSince1970 ?? Date().timeIntervalSince1970,
             packageStartTime: self.packageStartDate?.timeIntervalSince1970 ?? (Date().timeIntervalSince1970 - self.sendIntervalTime),
-            userID: "0001"
+            userID: "0001",
+            isLast: isLast
         )
-//        combined_data_queue.append(dataToSend)
-        
-        guard let url = URL(string: "http://192.168.1.247:5001/data") else { return }
-//        guard let url = URL(string: "http://DESKTOP-TLHPLE1.local:5001/data") else { return }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        do {
-            request.httpBody = try JSONEncoder().encode(dataToSend)
-        } catch {
-            print("Error encoding JSON: \(error)")
-            DispatchQueue.main.async {
-                self.postStatus = "Encoding Error"
-            }
-            return
-        }
-        
-        Task {
-            do {
-                let (data, response) = try await URLSession.shared.data(for: request)
-                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                    print("POST request successful!")
-                    do {
-                        let predictionResponse = try JSONDecoder().decode(PredictionResponse.self, from: data)
-                        DispatchQueue.main.async {
-                            self.postStatus = "Motion Sent: 200 OK"
-                            print("Received predictions: \(predictionResponse.predictions)")
-                            
-                            self.sleepStagePredictions = predictionResponse.predictions
-                            
-                            if self.shouldPlayAlarmSound(predictions: predictionResponse.predictions) {
-                                self.playSound()
-                            }
-                        }
-                    } catch {
-                        print("Error decoding JSON response: \(error)")
-                        DispatchQueue.main.async {
-                            self.postStatus = "Motion Sent"
-                        }
-                    }
-                } else {
-                    let code = (response as? HTTPURLResponse)?.statusCode ?? 0
-                    print("POST request failed with status code: \(code)")
-                    DispatchQueue.main.async {
-                        self.postStatus = "Motion Err: \(code)"
-                    }
-                }
-            } catch {
-                print("Error during POST request: \(error)")
-                DispatchQueue.main.async {
-                    self.postStatus = "Motion Fail: \(error.localizedDescription)"
-                }
-            }
-        }
+        self.combined_data_queue.append(dataToSend)
+        // 3. Snapshot the CURRENT batch to send (so we know exactly what to remove later)
+        let batch_to_send = self.combined_data_queue
         
         //reset data
         self.accelData = ["x": [], "y": [], "z": [], "timestamp": []]
         self.heartRateData = ["heartRate": [], "timestamp": []]
         self.packageStartDate = Date()
+        
+//        guard let url = URL(string: "http://Kaitos-MacBook-Air.local:5001/data") else { return }
+        guard let url = URL(string: "http://smart-alarm-app-runner-load-bal-552359379.us-east-2.elb.amazonaws.com/api/data") else { return }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        Task {
+            do {
+                request.httpBody = try JSONEncoder().encode(batch_to_send)
+                let (data, response) = try await URLSession.shared.data(for: request)
+                
+                guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+                    print("Server error: \(String(describing: response))")
+                    DispatchQueue.main.async { self.postStatus = "Server Error" }
+                    return
+                }
+                
+                if let responseString = String(data: data, encoding: .utf8){
+                    print("Response: \(responseString)")
+                    
+                    DispatchQueue.main.async{
+                        self.postStatus = "Success"
+                        
+                        if self.combined_data_queue.count >= batch_to_send.count {
+                            self.combined_data_queue.removeFirst(batch_to_send.count)
+                        } else {
+                            // Fallback just in case, though this shouldn't happen
+                            self.combined_data_queue.removeAll()
+                        }
+                    }
+                    
+                    print("Waiting 15 seconds before fetching predictions...")
+                    try? await Task.sleep(nanoseconds: 15 * 1_000_000_000)
+                    
+                    await self.fetchPredictions()
+                }
+            } catch {
+                print("Error sending data: \(error)")
+                DispatchQueue.main.async { self.postStatus = "Network Error"}
+            }
+        }
+    }
+    
+    func fetchPredictions() async {
+        print("fetching predictions...")
+        guard let url = URL(string: "http://smart-alarm-app-runner-load-bal-552359379.us-east-2.elb.amazonaws.com/api/get_predictions") else { return }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body = PredictionGetData(
+            userID: "0001",
+            absoluteStartTime: self.sessionStartDate?.timeIntervalSince1970 ?? Date().timeIntervalSince1970
+        )
+        
+        do{
+            request.httpBody = try JSONEncoder().encode(body)
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+                struct PredictionResponse: Decodable {
+                    let predictions: [Int]
+                    let status: String?
+                }
+                
+                let result = try JSONDecoder().decode(PredictionResponse.self, from: data)
+                
+                DispatchQueue.main.async {
+                    self.sleepStagePredictions = result.status ?? ""
+                    
+                    if self.shouldPlayAlarmSound(predictions: result.predictions.suffix(10)) {
+                        self.playSound()
+                    }
+                }
+            } else if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 202 {
+                struct PredictionResponse: Decodable {
+                    let predictions: [Int]
+                    let status: String?
+                }
+                
+                let result = try JSONDecoder().decode(PredictionResponse.self, from: data)
+                
+                DispatchQueue.main.async {
+                    self.sleepStagePredictions = result.status ?? ""
+                }
+            } else {
+                print("Predictions not ready yet (Status: \((response as? HTTPURLResponse)?.statusCode ?? 0)")
+            }
+        } catch {
+            print("Error fetching predictions \(error)")
+        }
     }
     
     private func resetData() {
@@ -625,8 +662,8 @@ class WatchMotionManager: NSObject, ObservableObject {
     }
     
     func sendSleepDataToServer(_ jsonString: String) {
-        guard let url = URL(string: "http://192.168.1.247:5001/sleep_data") else { return }
-//        guard let url = URL(string: "http://DESKTOP-TLHPLE1.local:5001/sleep_data") else { return }
+//        guard let url = URL(string: "http://Kaitos-MacBook-Air.local:5001/sleep_data") else { return }
+        guard let url = URL(string: "http://smart-alarm-app-runner-load-bal-552359379.us-east-2.elb.amazonaws.com/api/sleep_data") else { return }
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -732,7 +769,7 @@ class WatchMotionManager: NSObject, ObservableObject {
         // 3. Send the pending Motion/Heart Rate Data
         // This function captures the current buffers, initiates the upload,
         // and THEN clears the local arrays immediately.
-        self.sendDataToServer()
+        self.sendDataToServer(true)
         
         // 4. Reset UI visual values
         DispatchQueue.main.async {
@@ -741,7 +778,7 @@ class WatchMotionManager: NSObject, ObservableObject {
             self.z = 0
             self.time = 0
             self.hr = 0
-            self.sleepStagePredictions = []
+            self.sleepStagePredictions = ""
             // We don't reset postStatus yet so you can see "Sending..." updates
         }
         
@@ -780,7 +817,7 @@ extension WatchMotionManager: HKWorkoutSessionDelegate {
                 self.movementManager.stopAccelerometerUpdates()
                 
                 // Send the final data to the server
-                self.sendDataToServer()
+                self.sendDataToServer(true)
                 
                 // Reset the UI and data arrays
                 self.resetData()
