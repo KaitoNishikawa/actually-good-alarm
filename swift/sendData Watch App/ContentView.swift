@@ -19,7 +19,7 @@ struct ContentView: View {
                     Text("z: \(motionManager.z)")
                     Text("HR: \(motionManager.hr)")
                     Text("time: \(motionManager.time)")
-                    Text("stages: \(motionManager.sleepStagePredictions.map(String.init).joined(separator: ", "))")
+                    Text("stages: \(motionManager.sleepStagePredictions)")
                     Text("post status: \(motionManager.postStatus)")
                 }
                 .padding(.vertical, 10)
